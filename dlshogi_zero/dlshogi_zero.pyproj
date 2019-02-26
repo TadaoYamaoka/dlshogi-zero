@@ -5,14 +5,17 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>9f78d98b-17e6-496b-aba2-56d423235939</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>train.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>dlshogi_basic_zero</Name>
     <RootNamespace>dlshogi_basic_zero</RootNamespace>
+    <IsWindowsApplication>False</IsWindowsApplication>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <CommandLineArguments>F:\db2018 F:\db2019 --steps 10</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -28,17 +31,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="agent\mcts_agent.py" />
-    <Compile Include="encoder\shogi_encoder.py" />
+    <Compile Include="database.py" />
+    <Compile Include="encoder.py" />
     <Compile Include="nn\resnet.py" />
-    <Compile Include="type.py" />
-    <Compile Include="train_from_csa.py" />
-    <Compile Include="train_sl.py" />
+    <Compile Include="train.py" />
+    <Compile Include="csa_to_training_data.py" />
+    <Compile Include="train_from_hcpe.py" />
     <Compile Include="uct\hash.py" />
     <Compile Include="uct\node.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="agent\" />
-    <Folder Include="encoder\" />
     <Folder Include="nn\" />
     <Folder Include="uct\" />
   </ItemGroup>

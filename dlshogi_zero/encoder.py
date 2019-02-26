@@ -1,6 +1,11 @@
 ﻿from cshogi import *
 
-def encode_position(board, features):
+MAX_HISTORY = 8
+FEATURES_PER_HISTORY = 43
+MAX_FEATURES = FEATURES_PER_HISTORY * MAX_HISTORY + 2
+MAX_ACTION_LABELS = (64+2+64+2+7)*81
+
+def encode_position(board, hist, features):
     # Input features
     #   P1 piece 14
     #   P2 piece 14
@@ -9,6 +14,8 @@ def encode_position(board, features):
     #   P2 prisoner count 7
     #   Colour 1
     #   Total move count 1
+
+    hfeatures = features[FEATURES_PER_HISTORY * hist:FEATURES_PER_HISTORY * (hist + 1)]
     # piece
     pieces = board.pieces
     for sq in SQUARES:
@@ -16,20 +23,22 @@ def encode_position(board, features):
         if piece != NONE:
             if piece >= WPAWN:
                 piece = piece - 2
-            features[piece - 1][sq] = 1
+            hfeatures[piece - 1][sq] = 1
     # repetition
     if board.is_draw() == REPETITION_DRAW:
-        features[28].fill(1)
+        hfeatures[28].fill(1)
     # prisoner count
     pieces_in_hand = board.pieces_in_hand
     for c, hands in enumerate(pieces_in_hand):
         for hp, num in enumerate(hands):
-            features[29 + c * 7 + hp].fill(num)
+            hfeatures[29 + c * 7 + hp].fill(num / 4)
+
+def encode_color_totalmovecout(color, totalmovecout, features):
     # Colour
-    if board.turn == WHITE:
-        features[43].fill(1)
+    if color == WHITE:
+        features[FEATURES_PER_HISTORY * MAX_HISTORY].fill(1)
     # Total move count
-    # not implement for learning from hcpe
+    features[FEATURES_PER_HISTORY * MAX_HISTORY + 1].fill(totalmovecout/256)
 
 def encode_action(move):
     # Action representation
@@ -82,10 +91,10 @@ def encode_action(move):
         hp = move_drop_hand_piece(move)
         return (132 + hp) * 81 + to_sq
 
-def encode_outcome(board, game_result):
+def encode_outcome(color, game_result):
     # game outcome
     #   z: −1 for a loss, 0 for a draw, and +1 for a win
-    if board.turn == BLACK:
+    if color == BLACK:
         if game_result == BLACK_WIN:
             return 1
         if game_result == WHITE_WIN:

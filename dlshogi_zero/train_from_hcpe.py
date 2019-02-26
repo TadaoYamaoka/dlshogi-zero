@@ -1,8 +1,8 @@
 ﻿import tensorflow as tf
 import numpy as np
 from cshogi import *
-from dlshogi_basic_zero.nn.resnet import ResNet
-from dlshogi_basic_zero.encoder.shogi_encoder import *
+from dlshogi_zero.nn.resnet import ResNet
+from dlshogi_zero.encoder.shogi_encoder import *
 import argparse
 import os
 
@@ -37,6 +37,7 @@ def mini_batch(hcpes):
         # input features
         board.set_hcp(hcpe['hcp'])
         encode_position(board, features[i])
+        encode_color_totalmovecout(board.turn, 0, features[i])
 
         # action label
         move = hcpe['bestMove16']
@@ -44,7 +45,7 @@ def mini_batch(hcpes):
 
         # game outcome
         game_result = hcpe['gameResult']
-        game_outcomes[i] = encode_outcome(board, game_result)
+        game_outcomes[i] = encode_outcome(board.turn, game_result)
 
     return (features.reshape((len(hcpes), 45, 9, 9)), { 'policy': action_labels, 'value': game_outcomes })
 
