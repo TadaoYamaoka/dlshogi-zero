@@ -3,6 +3,11 @@ import sqlite3
 import os.path
 from cshogi import *
 
+HcpAndRepetition = np.dtype([
+    ('hcp', dtypeHcp),
+    ('repetition', np.int8)
+    ])
+
 dtypeVisit = np.dtype(np.int16)
 
 class TrainingDataBase:
@@ -14,7 +19,7 @@ class TrainingDataBase:
             self.cur.execute('DROP TABLE training_data')
             self.con.commit()
         if not file_exist or clear:
-            self.cur.execute('CREATE TABLE training_data (game_id integer, model_ver integer, hcps blob, repetition integer, total_move_count integer, legal_moves blob, visits blob, game_result integer)')
+            self.cur.execute('CREATE TABLE training_data (game_id integer, model_ver integer, hcprs blob, total_move_count integer, legal_moves blob, visits blob, game_result integer)')
             self.cur.execute('CREATE INDEX idx_game_id ON training_data (game_id)')
             self.con.commit()
             self.current_game_id = 0
@@ -32,20 +37,19 @@ class TrainingDataBase:
         self.model_ver = model_ver
 
     def write_chunk(self, chunk):
-        self.cur.executemany('INSERT INTO training_data VALUES ({}, {}, ?, ?, ?, ?, ?, ?)'.format(self.current_game_id, self.current_game_id), chunk)
+        self.cur.executemany('INSERT INTO training_data VALUES ({}, {}, ?, ?, ?, ?, ?)'.format(self.current_game_id, self.current_game_id), chunk)
         self.current_game_id += 1
 
     def get_training_batch(self, window_size=1000000, batch_size=4096):
         batch = self.cur.execute(
-            'WITH RECURSIVE rand_id(id) AS (SELECT RANDOM() UNION ALL SELECT RANDOM() FROM rand_id LIMIT {n_samples}) SELECT hcps, repetition, total_move_count, legal_moves, visits, game_result FROM training_data AS A JOIN (SELECT ABS(id) % ((SELECT MAX(rowid) FROM training_data) - (SELECT MIN(rowid) FROM training_data WHERE game_id >= {min_game_id})) + (SELECT MIN(rowid) FROM training_data WHERE game_id >= {min_game_id}) AS B FROM rand_id) ON A.rowid = B'.format(
+            'WITH RECURSIVE rand_id(id) AS (SELECT RANDOM() UNION ALL SELECT RANDOM() FROM rand_id LIMIT {n_samples}) SELECT hcprs, total_move_count, legal_moves, visits, game_result FROM training_data AS A JOIN (SELECT ABS(id) % ((SELECT MAX(rowid) FROM training_data) - (SELECT MIN(rowid) FROM training_data WHERE game_id >= {min_game_id})) + (SELECT MIN(rowid) FROM training_data WHERE game_id >= {min_game_id}) AS B FROM rand_id) ON A.rowid = B'.format(
                 n_samples=batch_size,
                 min_game_id=self.current_game_id - window_size)).fetchall()
         for data in batch:
             yield (
-                np.frombuffer(data[0], dtype=dtypeHcp),
+                np.frombuffer(data[0], dtype=HcpAndRepetition),
                 data[1],
-                data[2],
-                np.frombuffer(data[3], dtype=dtypeMove),
-                np.frombuffer(data[4], dtype=dtypeVisit),
-                data[5]
+                np.frombuffer(data[2], dtype=dtypeMove),
+                np.frombuffer(data[3], dtype=dtypeVisit),
+                data[4]
                 )

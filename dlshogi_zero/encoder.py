@@ -1,19 +1,18 @@
 ﻿from cshogi import *
+import math
 
 MAX_HISTORY = 8
-FEATURES_PER_HISTORY = 43
+FEATURES_PER_HISTORY = 45
 MAX_FEATURES = FEATURES_PER_HISTORY * MAX_HISTORY + 2
 MAX_ACTION_LABELS = (64+2+64+2+7)*81
 
-def encode_position(board, hist, features):
+def encode_position(board, repetition, features, hist):
     # Input features
     #   P1 piece 14
     #   P2 piece 14
-    #   Repetitions 1
+    #   Repetitions 3
     #   P1 prisoner count 7
     #   P2 prisoner count 7
-    #   Colour 1
-    #   Total move count 1
 
     hfeatures = features[FEATURES_PER_HISTORY * hist:FEATURES_PER_HISTORY * (hist + 1)]
     # piece
@@ -25,20 +24,37 @@ def encode_position(board, hist, features):
                 piece = piece - 2
             hfeatures[piece - 1][sq] = 1
     # repetition
-    if board.is_draw() == REPETITION_DRAW:
+    if repetition == 1:
         hfeatures[28].fill(1)
+    elif repetition == 2:
+        hfeatures[28].fill(1)
+        hfeatures[29].fill(1)
+    elif repetition == 3:
+        hfeatures[28].fill(1)
+        hfeatures[29].fill(1)
+        hfeatures[30].fill(1)
     # prisoner count
     pieces_in_hand = board.pieces_in_hand
     for c, hands in enumerate(pieces_in_hand):
         for hp, num in enumerate(hands):
-            hfeatures[29 + c * 7 + hp].fill(num / 4)
+            if hp == HPAWN:
+                max_hp_num = 8
+            elif hp == HBISHOP or hp == HROOK:
+                max_hp_num = 2
+            else:
+                max_hp_num = 4
+
+            hfeatures[31 + c * 7 + hp].fill(num / max_hp_num)
 
 def encode_color_totalmovecout(color, totalmovecout, features):
+    #   Colour 1
+    #   Total move count 1
+
     # Colour
     if color == WHITE:
         features[FEATURES_PER_HISTORY * MAX_HISTORY].fill(1)
     # Total move count
-    features[FEATURES_PER_HISTORY * MAX_HISTORY + 1].fill(totalmovecout/256)
+    features[FEATURES_PER_HISTORY * MAX_HISTORY + 1].fill(math.tanh(totalmovecout/150))
 
 def encode_action(move):
     # Action representation
