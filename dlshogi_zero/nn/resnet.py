@@ -1,7 +1,7 @@
 ﻿import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Layer, Input, Dense, Conv2D, BatchNormalization, Activation, Flatten, Add
-from dlshogi_zero.encoder import MAX_FEATURES
+from dlshogi_zero.features import MAX_FEATURES
 
 class Bias(Layer):
     def __init__(self, **kwargs):

@@ -10,26 +10,24 @@ HcpAndRepetition = np.dtype([
 
 dtypeVisit = np.dtype(np.int16)
 
+COMMIT_INTERVAL = 100
+
 class TrainingDataBase:
     def __init__(self, filepath, clear=False):
         file_exist = os.path.exists(filepath)
-        self.con = sqlite3.connect(filepath)
+        self.con = sqlite3.connect(filepath, check_same_thread=False)
         self.cur = self.con.cursor()
         if file_exist and clear:
             self.cur.execute('DROP TABLE training_data')
-            self.con.commit()
         if not file_exist or clear:
             self.cur.execute('CREATE TABLE training_data (game_id integer, model_ver integer, hcprs blob, total_move_count integer, legal_moves blob, visits blob, game_result integer)')
             self.cur.execute('CREATE INDEX idx_game_id ON training_data (game_id)')
-            self.con.commit()
             self.current_game_id = 0
         else:
-            self.current_game_id = self.cur.execute('select max(game_id) from training_data').fetchone()[0] + 1
-
-    def commit(self):
-        self.con.commit()
+            self.current_game_id = (self.cur.execute('SELECT MAX(game_id) FROM training_data').fetchone()[0] or -1) + 1
 
     def close(self):
+        self.con.commit()
         self.cur.close()
         self.con.close()
     
@@ -39,6 +37,8 @@ class TrainingDataBase:
     def write_chunk(self, chunk):
         self.cur.executemany('INSERT INTO training_data VALUES ({}, {}, ?, ?, ?, ?, ?)'.format(self.current_game_id, self.current_game_id), chunk)
         self.current_game_id += 1
+        if self.current_game_id % COMMIT_INTERVAL == 0:
+            self.con.commit()
 
     def get_training_batch(self, window_size=1000000, batch_size=4096):
         batch = self.cur.execute(

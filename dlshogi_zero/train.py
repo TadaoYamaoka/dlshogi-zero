@@ -2,7 +2,7 @@
 import numpy as np
 from cshogi import *
 from dlshogi_zero.nn.resnet import ResNet
-from dlshogi_zero.encoder import *
+from dlshogi_zero.features import *
 from dlshogi_zero.database import *
 import os
 
@@ -16,18 +16,18 @@ def mini_batch(database, window_size, batch_size):
         # input features
         for j, hcpr in enumerate(hcprs):
             board.set_hcp(hcpr['hcp'])
-            encode_position(board, hcpr['repetition'], features[i], j)
+            make_position_features(board, hcpr['repetition'], features[i], j)
             if j == 0:
                 color = board.turn
-        encode_color_totalmovecout(color, total_move_count, features[i])
+        make_color_totalmovecout_features(color, total_move_count, features[i])
 
         # action probabilities
         sum = np.sum(visits)
         for move, visit in zip(legal_moves, visits):
-            action_probabilities[i][encode_action(move)] = visit / sum
+            action_probabilities[i][make_action_label(move)] = visit / sum
 
         # game outcome
-        game_outcomes[i] = encode_outcome(color, game_result)
+        game_outcomes[i] = make_outcome(color, game_result)
 
     return (features.reshape((batch_size, MAX_FEATURES, 9, 9)), { 'policy': action_probabilities, 'value': game_outcomes })
 

@@ -6,7 +6,7 @@ FEATURES_PER_HISTORY = 45
 MAX_FEATURES = FEATURES_PER_HISTORY * MAX_HISTORY + 2
 MAX_ACTION_LABELS = (64+2+64+2+7)*81
 
-def encode_position(board, repetition, features, hist):
+def make_position_features(board, repetition, features, hist):
     # Input features
     #   P1 piece 14
     #   P2 piece 14
@@ -46,7 +46,7 @@ def encode_position(board, repetition, features, hist):
 
             hfeatures[31 + c * 7 + hp].fill(num / max_hp_num)
 
-def encode_color_totalmovecout(color, totalmovecout, features):
+def make_color_totalmovecout_features(color, totalmovecout, features):
     #   Colour 1
     #   Total move count 1
 
@@ -56,7 +56,7 @@ def encode_color_totalmovecout(color, totalmovecout, features):
     # Total move count
     features[FEATURES_PER_HISTORY * MAX_HISTORY + 1].fill(math.tanh(totalmovecout/150))
 
-def encode_action(move):
+def make_action_label(move):
     # Action representation
     #   Queen moves 64
     #   Knight moves 2
@@ -107,7 +107,7 @@ def encode_action(move):
         hp = move_drop_hand_piece(move)
         return (132 + hp) * 81 + to_sq
 
-def encode_outcome(color, game_result):
+def make_outcome(color, game_result):
     # game outcome
     #   z: −1 for a loss, 0 for a draw, and +1 for a win
     if color == BLACK:

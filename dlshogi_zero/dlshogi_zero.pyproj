@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>9f78d98b-17e6-496b-aba2-56d423235939</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>train.py</StartupFile>
+    <StartupFile>selfplay.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -14,7 +14,7 @@
     <RootNamespace>dlshogi_basic_zero</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>F:\db2018 F:\db2019 --steps 10</CommandLineArguments>
+    <CommandLineArguments>h:\record.db h:\model.h5 --batchsize 1</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -32,13 +32,15 @@
   <ItemGroup>
     <Compile Include="agent\selfplay_agent.py" />
     <Compile Include="database.py" />
-    <Compile Include="encoder.py" />
+    <Compile Include="features.py" />
     <Compile Include="nn\resnet.py" />
+    <Compile Include="selfplay.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="train.py" />
     <Compile Include="csa_to_training_data.py" />
     <Compile Include="train_from_hcpe.py" />
-    <Compile Include="uct\hash.py" />
-    <Compile Include="uct\node.py" />
+    <Compile Include="uct\uct_node.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="agent\" />

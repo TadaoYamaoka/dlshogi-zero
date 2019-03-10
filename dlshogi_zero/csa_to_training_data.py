@@ -1,7 +1,7 @@
 ﻿import numpy as np
 from cshogi import *
 from dlshogi_zero.database import *
-from dlshogi_zero.encoder import *
+from dlshogi_zero.features import *
 import glob
 import os.path
 import math
@@ -21,8 +21,6 @@ def process_csa(database, csa_file_list):
         chunk = []
         repetitions = defaultdict(int)
         game_hcprs = np.empty(MAX_MOVE_COUNT, dtype=HcpAndRepetition)
-        # totalMoveCount
-        total_move_count = len(parser.moves)
         # gameResult
         game_result = parser.win
         for i, move in enumerate(parser.moves):
@@ -35,6 +33,8 @@ def process_csa(database, csa_file_list):
             # legalMoves
             legal_moves = np.empty(1, dtypeMove)
             legal_moves[0] = move16(move) # 指し手のみ
+            # totalMoveCount
+            total_move_count = board.move_number
             # visits
             visits = np.empty(1, dtypeVisit)
             visits[0] = 1 # 指し手のみ
@@ -75,6 +75,5 @@ if __name__ == '__main__':
     training_database.set_model_ver(0)
     logging.info('start process csa')
     process_csa(training_database, csa_file_list)
-    training_database.commit()
     training_database.close()
     logging.info('done')

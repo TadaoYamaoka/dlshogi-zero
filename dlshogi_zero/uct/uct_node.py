@@ -1,10 +1,13 @@
 ﻿import shogi
 
-UCT_HASH_SIZE = 4096 # 2のn乗であること
+UCT_HASH_SIZE = 65536 # 2のn乗であること
 UCT_HASH_LIMIT = UCT_HASH_SIZE * 9 / 10
 
 # 未展開のノードのインデックス
 NOT_EXPANDED = -1
+
+# 未使用を表す
+NOT_USE = -1
 
 def hash_to_index(hash):
     return ((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (UCT_HASH_SIZE - 1)
@@ -14,44 +17,39 @@ class NodeHashEntry:
         self.hash = 0     # ゾブリストハッシュの値
         self.color = 0    # 手番
         self.moves = 0    # ゲーム開始からの手数
-        self.flag = False # 使用中か識別するフラグ
+        self.id = NOT_USE # 使用中のエージェントのID
 
 class NodeHash:
-    def __init__(self):
+    def __init__(self, hash_size):
         self.used = 0
         self.enough_size = True
         self.node_hash = None
-
-    # UCTノードのハッシュの初期化
-    def initialize(self):
-        self.used = 0
-        self.enough_size = True
-
-        if self.node_hash is None:
-            self.node_hash = [NodeHashEntry() for _ in range(UCT_HASH_SIZE)]
-        else:
-            for i in range(UCT_HASH_SIZE):
-                self.node_hash[i].hash = 0
-                self.node_hash[i].color = 0
-                self.node_hash[i].moves = 0
-                self.node_hash[i].flag = False
-
+        self.node_hash = [NodeHashEntry()] * hash_size
 
     # 配列の添え字でノードを取得する
     def __getitem__(self, i):
         return self.node_hash[i]
 
+    # ハッシュのクリア
+    def clear_hash(self, id):
+        self.enough_size = True
+
+        for node in self.node_hash:
+            if node.id == id:
+                node.id = NOT_USE
+                used -= 1
+
     # 未使用のインデックスを探して返す
-    def search_empty_index(self, hash, color, moves):
+    def search_empty_index(self, hash, color, moves, id):
         key = hash_to_index(hash)
         i = key
 
         while True:
-            if not self.node_hash[i].flag:
+            if self.node_hash[i].id == NOT_USE:
                 self.node_hash[i].hash = hash
                 self.node_hash[i].color = color
                 self.node_hash[i].moves = moves
-                self.node_hash[i].flag = True
+                self.node_hash[i].id = id
                 self.used += 1
                 if self.used > UCT_HASH_LIMIT:
                     self.enough_size = False
@@ -63,52 +61,20 @@ class NodeHash:
                 return UCT_HASH_SIZE
 
     # ハッシュ値に対応するインデックスを返す
-    def find_same_hash_index(self, hash, color, moves):
+    def find_same_hash_index(self, hash, color, moves, id):
         key = hash_to_index(hash)
         i = key
 
         while True:
-            if not self.node_hash[i].flag:
+            if self.node_hash[i].id == NOT_USE:
                 return UCT_HASH_SIZE
-            elif self.node_hash[i].hash == hash and self.node_hash[i].color == color and self.node_hash[i].moves == moves:
+            elif self.node_hash[i].hash == hash and self.node_hash[i].moves == moves and self.node_hash[i].id == id:
                 return i
             i += 1
             if i >= UCT_HASH_SIZE:
                 i = 0
             if i == key:
                 return UCT_HASH_SIZE
-
-    # 使用中のノードを残す
-    def save_used_hash(self, board, uct_node, index):
-        self.node_hash[index].flag = True
-        self.used += 1
-
-        current_node = uct_node[index]
-        child_index = current_node.child_index
-        child_move = current_node.child_move
-        child_num = current_node.child_num
-        for i in range(child_num):
-            if child_index[i] != NOT_EXPANDED and self.node_hash[child_index[i]].flag == False:
-                board.push(child_move[i])
-                self.save_used_hash(board, uct_node, child_index[i])
-                board.pop()
-
-    # 古いハッシュを削除
-    def delete_old_hash(self, board, uct_node):
-        # 現在の局面をルートとする局面以外を削除する
-        root = self.find_same_hash_index(board.zobrist_hash(), board.turn, board.move_number)
-
-        self.used = 0
-        for i in range(UCT_HASH_SIZE):
-            self.node_hash[i].flag = False
-
-        if root != UCT_HASH_SIZE:
-            self.save_used_hash(board, uct_node, root)
-
-        self.enough_size = True
-
-    def get_usage_rate(self):
-        return self.used / UCT_HASH_SIZE
 
 class UctNode:
     def __init__(self):
