@@ -29,12 +29,10 @@ TEMPERATURE = 1.0
 MAX_MOVE_COUNT = 512
 # キューに追加されたときの戻り値（数値に意味はない）
 QUEUING = 2.0
-# ハッシュサイズ
-UCT_HASH_SIZE = 65536
 
 database = None
-nodes = 0
-written_nodes = 0
+positions = 0
+written_positions = 0
 limit_games = 10000
 num_playouts = 800
 games = 0
@@ -48,20 +46,20 @@ def term_database():
     database.close()
 
 def print_progress():
-    ply_per_game = written_nodes / games
-    limit_nodes = ply_per_game * limit_games
-    progress = written_nodes / limit_nodes
+    moves_per_game = written_positions / games
+    limit_positions = moves_per_game * limit_games
+    progress = written_positions / limit_positions
     elapsed_time = time.time() - start_time
-    nodes_per_sec = nodes / elapsed_time
+    positions_per_sec = positions / elapsed_time
 
-    logging.info('progress:{:.2f}%, nodes:{}, nodes/sec:{:.2f}, games:{}, ply/game:{:.2f}, elapsed:{}[s]'.format(
-        progress, nodes, nodes_per_sec, games, ply_per_game, int(elapsed_time)
+    logging.info('progress:{:.2f}%, positions:{}, positions/sec:{:.2f}, games:{}, moves/game:{:.2f}, elapsed:{}[s]'.format(
+        progress, positions, positions_per_sec, games, moves_per_game, int(elapsed_time)
         ))
 
 def print_result():
     # 結果表示
-    logging.info('made {} games. nodes:{}, ply/game:{:.2f}'.format(
-        games, nodes, written_nodes / games
+    logging.info('made {} games. positions:{}, moves/game:{:.2f}'.format(
+        games, positions, written_positions / games
         ))
 
 def softmax_temperature_with_normalize(logits, temperature):
@@ -88,20 +86,16 @@ class SelfPlayAgentGroup:
     def __init__(self, model_path, policy_value_batch_maxsize):
         self.model = load_model(model_path, custom_objects={'Bias': Bias})
 
-        self.node_hash = NodeHash(UCT_HASH_SIZE)
-        self.uct_node = [UctNode() for _ in range(UCT_HASH_SIZE)]
-
-        self.thread_selfplay = None
         self.running = True
 
         # キュー
         self.policy_value_batch_maxsize = policy_value_batch_maxsize
         self.features = np.empty((policy_value_batch_maxsize, MAX_FEATURES, 81), dtype=np.float32)
-        self.policy_value_hash_index = [0] * policy_value_batch_maxsize
+        self.policy_value_node = [0] * policy_value_batch_maxsize
         self.current_policy_value_batch_index = 0
 
         # 自己対局エージェント
-        self.agents = [SelfPlayAgent(self, self.node_hash, self.uct_node, i) for i in range(policy_value_batch_maxsize)]
+        self.agents = [SelfPlayAgent(self, i) for i in range(policy_value_batch_maxsize)]
 
     def selfplay(self):
         # 探索経路のバッチ
@@ -122,13 +116,13 @@ class SelfPlayAgentGroup:
             # バックアップ
             for trajectories in trajectories_batch:
                 for i in reversed(range(len(trajectories))):
-                    (current, next_index) = trajectories[i]
-                    current_node = self.uct_node[current]
+                    (uct_node, current, next_index) = trajectories[i]
+                    current_node = uct_node[current]
                     if i == len(trajectories) - 1:
                         # 葉ノード
                         child_index = current_node.child_index[next_index]
-                        result = -self.uct_node[child_index].value_win
-                    update_result(self.uct_node[current], next_index, result)
+                        result = -uct_node[child_index].value_win
+                    update_result(uct_node[current], next_index, result)
                     result = -result
 
             # 次のシミュレーションへ
@@ -146,12 +140,10 @@ class SelfPlayAgentGroup:
         logits, values = self.model.predict(self.features[0:self.current_policy_value_batch_index].reshape((self.current_policy_value_batch_index, MAX_FEATURES, 9, 9)))
 
         for i, (logit, value) in enumerate(zip(logits, values)):
-            index = self.policy_value_hash_index[i]
+            current_node = self.policy_value_node[i]
 
-            current_node = self.uct_node[index]
             child_num = current_node.child_num
             child_move = current_node.child_move
-            color = self.node_hash[index].color
 
             # 合法手一覧
             legal_move_probabilities = np.empty(child_num, dtype=np.float32)
@@ -169,7 +161,7 @@ class SelfPlayAgentGroup:
             current_node.evaled = True
 
     # ノードをキューに追加
-    def queuing_node(self, board, moves, repetitions, index):
+    def queuing_node(self, board, moves, repetitions, node):
         assert len(moves) == len(repetitions) - 1
 
         # set all zero
@@ -190,17 +182,17 @@ class SelfPlayAgentGroup:
         # 入力特徴量に手番と手数を設定
         make_color_totalmovecout_features(board.turn, board.move_number, self.features[self.current_policy_value_batch_index])
 
-        self.policy_value_hash_index[self.current_policy_value_batch_index] = index
+        self.policy_value_node[self.current_policy_value_batch_index] = node
         self.current_policy_value_batch_index += 1
 
 
 class SelfPlayAgent:
-    def __init__(self, grp, node_hash, uct_node, id):
+    def __init__(self, grp, id):
         self.grp = grp
-        self.node_hash = node_hash
-        self.uct_node = uct_node
         self.id = id
-        self.node_hash.clear_hash(id)
+
+        self.node_hash = NodeHash(UCT_HASH_SIZE)
+        self.uct_node = [UctNode() for _ in range(UCT_HASH_SIZE)]
 
         self.playouts = 0
         self.board = Board()
@@ -252,16 +244,16 @@ class SelfPlayAgent:
             hcprs[prev] = self.hcprs[i - prev]
 
         self.chunk.append((hcprs.data, self.board.move_number, np.array(legal_moves, dtype=dtypeMove).data, visits.data))
-        global nodes
-        nodes += 1
+        global positions
+        positions += 1
 
     # シミュレーションを1回行う
     def playout(self, trajectories):
         while True:
             # 手番開始
             if self.playouts == 0:
-                # ハッシュクリア
-                self.node_hash.clear_hash(self.id)
+                # ハッシュの世代を新しくする
+                self.node_hash.new_generation()
 
                 # ルートノード展開
                 self.current_root = self.expand_node()
@@ -293,7 +285,7 @@ class SelfPlayAgent:
                     continue
 
                 # ルート局面をキューに追加
-                self.grp.queuing_node(self.board, self.moves, self.repetitions, self.current_root)
+                self.grp.queuing_node(self.board, self.moves, self.repetitions, current_node)
 
                 return
 
@@ -365,9 +357,9 @@ class SelfPlayAgent:
             for i in range(len(self.chunk)):
                 self.chunk[i] += (game_result,)
             database.write_chunk(self.chunk)
-            global written_nodes
+            global written_positions
             global games
-            written_nodes += len(self.chunk)
+            written_positions += len(self.chunk)
             games += 1
     
         # 進捗状況表示
@@ -406,14 +398,14 @@ class SelfPlayAgent:
 
     # ノードの展開
     def expand_node(self):
-        index = self.node_hash.find_same_hash_index(self.board.zobrist_hash(), self.board.turn, self.board.move_number, self.id)
+        index = self.node_hash.find_same_hash_index(self.board.zobrist_hash(), self.board.turn, self.board.move_number)
 
         # 合流先が検知できれば, それを返す
         if not index == UCT_HASH_SIZE:
             return index
     
         # 空のインデックスを探す
-        index = self.node_hash.search_empty_index(self.board.zobrist_hash(), self.board.turn, self.board.move_number, self.id)
+        index = self.node_hash.search_empty_index(self.board.zobrist_hash(), self.board.turn, self.board.move_number)
 
         # 現在のノードの初期化
         current_node = self.uct_node[index]
@@ -468,7 +460,7 @@ class SelfPlayAgent:
         self.do_move(child_move[next_index])
 
         # 経路を記録
-        trajectories.append((current, next_index))
+        trajectories.append((self.uct_node, current, next_index))
 
         # ノードの展開の確認
         if child_index[next_index] == NOT_EXPANDED:
@@ -488,7 +480,7 @@ class SelfPlayAgent:
                 result = 1.0
             else:
                 # ノードをキューに追加
-                self.grp.queuing_node(self.board, self.moves, self.repetitions, index)
+                self.grp.queuing_node(self.board, self.moves, self.repetitions, child_node)
                 result = QUEUING
         else:
             # 手番を入れ替えて1手深く読む

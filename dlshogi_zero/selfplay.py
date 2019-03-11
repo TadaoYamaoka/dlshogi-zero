@@ -29,6 +29,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    logging.info('batchsize : {}'.format(args.batchsize))
+    logging.info('limit_games : {}'.format(args.limit_games))
+    logging.info('num_playouts : {}'.format(args.num_playouts))
+
     selfplay_agent.limit_games = args.limit_games
     selfplay_agent.num_playouts = args.num_playouts
 
