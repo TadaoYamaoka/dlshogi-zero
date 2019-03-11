@@ -40,11 +40,11 @@ def process_csa(database, csa_file_list):
             visits[0] = 1 # 指し手のみ
 
             # history
-            hcprs = np.zeros(MAX_HISTORY, dtype=HcpAndRepetition)
             if i < MAX_HISTORY:
                 hist = i + 1
             else:
                 hist = MAX_HISTORY
+            hcprs = np.zeros(hist, dtype=HcpAndRepetition)
             for prev in range(hist):
                 hcprs[prev] = game_hcprs[i - prev]
 

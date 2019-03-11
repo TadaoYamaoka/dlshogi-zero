@@ -235,11 +235,11 @@ class SelfPlayAgent:
         visits = current_root_node.child_move_count[0:current_root_node.child_num]
 
         # history
-        hcprs = np.zeros(MAX_HISTORY, dtype=HcpAndRepetition)
         if i < MAX_HISTORY:
             hist = i + 1
         else:
             hist = MAX_HISTORY
+        hcprs = np.zeros(hist, dtype=HcpAndRepetition)
         for prev in range(hist):
             hcprs[prev] = self.hcprs[i - prev]
 
