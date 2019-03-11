@@ -1,7 +1,7 @@
-﻿import tensorflow as tf
+﻿from tensorflow.keras.models import load_model
 import numpy as np
 from cshogi import *
-from dlshogi_zero.nn.resnet import ResNet
+from dlshogi_zero.nn.resnet import Bias
 from dlshogi_zero.features import *
 from dlshogi_zero.database import *
 from dlshogi_zero.uct.uct_node import *
@@ -9,6 +9,8 @@ from dlshogi_zero.uct.uct_node import *
 from threading import Thread, Lock
 from array import array
 from collections import defaultdict
+import time
+import logging
 
 RES_BLOCKS = 10
 FILTERS = 192
@@ -16,8 +18,11 @@ FILTERS = 192
 # UCBの定数
 C_BASE = 19652
 C_INIT = 1.25
+# ノイズの定数
+ALPHA = 0.15
+EPSILON = 0.25
 # 投了する勝率の閾値
-RESIGN_THRESHOLD = 0.01
+WINRATE_THRESHOLD = 1.0
 # 温度パラメータ
 TEMPERATURE = 1.0
 # 最大手数
@@ -31,8 +36,9 @@ database = None
 nodes = 0
 written_nodes = 0
 limit_games = 10000
+num_playouts = 800
 games = 0
-stopflg = False
+start_time = time.time()
 
 def init_database(filepath):
     global database
@@ -41,9 +47,22 @@ def init_database(filepath):
 def term_database():
     database.close()
 
-def stop():
-    global stop
-    stop = True
+def print_progress():
+    ply_per_game = written_nodes / games
+    limit_nodes = ply_per_game * limit_games
+    progress = written_nodes / limit_nodes
+    elapsed_time = time.time() - start_time
+    nodes_per_sec = nodes / elapsed_time
+
+    logging.info('progress:{:.2f}%, nodes:{}, nodes/sec:{:.2f}, games:{}, ply/game:{:.2f}, elapsed:{}[s]'.format(
+        progress, nodes, nodes_per_sec, games, ply_per_game, int(elapsed_time)
+        ))
+
+def print_result():
+    # 結果表示
+    logging.info('made {} games. nodes:{}, ply/game:{:.2f}'.format(
+        games, nodes, written_nodes / games
+        ))
 
 def softmax_temperature_with_normalize(logits, temperature):
     # 温度パラメータを適用
@@ -59,32 +78,26 @@ def softmax_temperature_with_normalize(logits, temperature):
 
     return probabilities
 
-class PlayoutInfo:
-    def __init__(self):
-        self.halt = 0 # 探索を打ち切る回数
-        self.count = 0 # 現在の探索回数
-
-# 探索経路のノード
-class TrajectorEntry:
-    def __init__(self, uct_node, current, next_index):
-        self.uct_node = uct_node
-        self.current = current
-        self.next_index = next_index
+def update_result(current_node, next_index, result):
+    current_node.win += result
+    current_node.move_count += 1
+    current_node.child_win[next_index] += result
+    current_node.child_move_count[next_index] += 1
 
 class SelfPlayAgentGroup:
-    def __init__(self, id, policy_value_batch_maxsize, parent):
+    def __init__(self, model_path, policy_value_batch_maxsize):
+        self.model = load_model(model_path, custom_objects={'Bias': Bias})
+
         self.node_hash = NodeHash(UCT_HASH_SIZE)
         self.uct_node = [UctNode() for _ in range(UCT_HASH_SIZE)]
 
-        self.parent = parent
         self.thread_selfplay = None
-        self.running = False
-        self.group_id = id
+        self.running = True
 
         # キュー
         self.policy_value_batch_maxsize = policy_value_batch_maxsize
-        self.features = np.empty((policy_value_batch_maxsize, MAX_FEATURES, 9, 9), dtype=np.float32)
-        self.policy_value_hash_index = array('i', [0] * policy_value_batch_maxsize)
+        self.features = np.empty((policy_value_batch_maxsize, MAX_FEATURES, 81), dtype=np.float32)
+        self.policy_value_hash_index = [0] * policy_value_batch_maxsize
         self.current_policy_value_batch_index = 0
 
         # 自己対局エージェント
@@ -92,127 +105,94 @@ class SelfPlayAgentGroup:
 
     def selfplay(self):
         # 探索経路のバッチ
-        trajectories_batch = [[]] * self.policy_value_batch_maxsize
+        trajectories_batch = [[] for _ in range(self.policy_value_batch_maxsize)]
 
         # 全スレッドが生成したゲーム数が上限ゲーム数以上になったら終了
-        while games < limit_games and not stopflg:
+        while games < limit_games:
+            self.current_policy_value_batch_index = 0
+
             # すべての対局についてシミュレーションを行う
             for agent, trajectories in zip(self.agents, trajectories_batch):
                 trajectories.clear()
                 agent.playout(trajectories)
         
             # 評価
-            eval_node()
+            self.eval_node()
 
             # バックアップ
-            result = 0.0
             for trajectories in trajectories_batch:
-                for i in range(len(trajectories) - 1, 0, -1):
-                    current_next = trajectories[i]
-                    uct_node = current_next.uct_node
-                    current = current_next.current
-                    next_index = current_next.next_index
-                    uct_child = uct_node[current].child
+                for i in reversed(range(len(trajectories))):
+                    (current, next_index) = trajectories[i]
+                    current_node = self.uct_node[current]
                     if i == len(trajectories) - 1:
-                        child_index = uct_child[next_index].index
-                        result = -uct_node[child_index].value_win
-                    self.update_result(uct_node, uct_child[next_index], result, current)
+                        # 葉ノード
+                        child_index = current_node.child_index[next_index]
+                        result = -self.uct_node[child_index].value_win
+                    update_result(self.uct_node[current], next_index, result)
                     result = -result
 
             # 次のシミュレーションへ
             for agent in self.agents:
                 agent.next_step()
 
+        # 結果表示
+        print_result()
+
         self.running = False
 
     # 局面の評価
     def eval_node(self):
-        policy_value_batch_size = self.current_policy_value_batch_index
-        
         # predict
-        logits, values = parent.model_forward(policy_value_batch_size, self.features)
+        logits, values = self.model.predict(self.features[0:self.current_policy_value_batch_index].reshape((self.current_policy_value_batch_index, MAX_FEATURES, 9, 9)))
 
         for i, (logit, value) in enumerate(zip(logits, values)):
             index = self.policy_value_hash_index[i]
 
-            # グループ内の対局は1スレッドで行うためロックは不要
-            child_num = self.uct_node[index].child_num
-            uct_child = self.uct_node[index].child
+            current_node = self.uct_node[index]
+            child_num = current_node.child_num
+            child_move = current_node.child_move
             color = self.node_hash[index].color
 
             # 合法手一覧
             legal_move_probabilities = np.empty(child_num, dtype=np.float32)
             for j in range(child_num):
-                move = uct_child[j].move
+                move = child_move[j]
                 move_label = make_action_label(move)
                 legal_move_probabilities[j] = logit[move_label]
 
-            # Boltzmann distribution
-            softmax_tempature_with_normalize(legal_move_probabilities, TEMPERATURE)
+            # Boltzmann分布
+            probabilities = softmax_temperature_with_normalize(legal_move_probabilities, TEMPERATURE)
 
-            for j in range(child_num):
-                uct_child[j].nnrate = legal_move_probabilities[j]
-
-            uct_node[index].value_win = value
-            uct_node[index].evaled = True
+            # ノードの値を更新
+            current_node.nnrate = probabilities
+            current_node.value_win = float(value)
+            current_node.evaled = True
 
     # ノードをキューに追加
     def queuing_node(self, board, moves, repetitions, index):
+        assert len(moves) == len(repetitions) - 1
+
         # set all zero
         self.features[self.current_policy_value_batch_index].fill(0)
 
+        # 入力特徴量に現局面を設定
+        make_position_features(board, repetitions[0], self.features[self.current_policy_value_batch_index], 0)
+
         # 入力特徴量に履歴局面を設定
-        for i, (move, repetition) in enumerate(zip(moves[-1:-MAX_HISTORY-1:-1], repetitions[-1:-MAX_HISTORY-1:-1])):
-            make_position_features(board, repetition, self.features[current_policy_value_batch_index], i)
+        for i, (move, repetition) in enumerate(zip(moves[-1:-MAX_HISTORY:-1], repetitions[-2:-MAX_HISTORY-1:-1])):
             board.pop(move)
+            make_position_features(board, repetition, self.features[self.current_policy_value_batch_index], i + 1)
 
         # 局面を戻す
-        for move in moves[-MAX_HISTORY::]:
+        for move in moves[-MAX_HISTORY+1::]:
             board.push(move)
 
         # 入力特徴量に手番と手数を設定
-        make_color_totalmovecout_features(board.turn, board.ply, self.features[current_policy_value_batch_index])
+        make_color_totalmovecout_features(board.turn, board.move_number, self.features[self.current_policy_value_batch_index])
 
-        self.policy_value_hash_index[current_policy_value_batch_index] = index
+        self.policy_value_hash_index[self.current_policy_value_batch_index] = index
         self.current_policy_value_batch_index += 1
 
-    # スレッド開始
-    def run(self):
-        # 自己対局用スレッド
-        self.running = True
-        self.thread_selfplay = Thread(target=self.selfplay)
-        self.thread_selfplay.start()
-
-    # スレッド終了待機
-    def join(self):
-        # 自己対局用スレッド
-        self.thread_selfplay.join()
-        print('thread_selfplay.join()')
-
-class SelfPlayAgentGroupPair:
-    def __init__(self, model_path, policy_value_batch_maxsize):
-        self.model = ResNet(res_blocks=RES_BLOCKS, filters=FILTERS)
-        self.groups = [SelfPlayAgentGroup(i, policy_value_batch_maxsize, self) for i in range(1)]
-        self.gpu_lock = Lock()
-
-    def model_forward(self, x):
-        with gpu_lock:
-            return self.model.predict(x)
-
-    def running(self):
-        for group in self.groups:
-            if group.running:
-                return True
-        return False
-
-    def run(self):
-        for group in self.groups:
-            group.run()
-
-    def join(self):
-        for group in self.groups:
-            group.join()
-            print('group.join()')
 
 class SelfPlayAgent:
     def __init__(self, grp, node_hash, uct_node, id):
@@ -220,6 +200,7 @@ class SelfPlayAgent:
         self.node_hash = node_hash
         self.uct_node = uct_node
         self.id = id
+        self.node_hash.clear_hash(id)
 
         self.playouts = 0
         self.board = Board()
@@ -230,7 +211,7 @@ class SelfPlayAgent:
         # 履歴局面
         self.hcprs = np.empty(MAX_MOVE_COUNT, dtype=HcpAndRepetition)
         # 同一局面の繰り返し数
-        self.repetitions = []
+        self.repetitions = [0]
         self.repetition_hash = defaultdict(int)
 
     # 着手
@@ -251,7 +232,7 @@ class SelfPlayAgent:
 
     # 教師局面をチャンクに追加
     def add_teacher(self, current_root_node):
-        i = self.board.ply
+        i = self.board.move_number - 1
         # hcp
         self.board.to_hcp(self.hcprs[i]['hcp'])
         # repetition
@@ -270,7 +251,8 @@ class SelfPlayAgent:
         for prev in range(hist):
             hcprs[prev] = self.hcprs[i - prev]
 
-        self.chunk.append((hcprs.data, self.board.ply, legal_moves.data, visits.data))
+        self.chunk.append((hcprs.data, self.board.move_number, np.array(legal_moves, dtype=dtypeMove).data, visits.data))
+        global nodes
         nodes += 1
 
     # シミュレーションを1回行う
@@ -279,13 +261,15 @@ class SelfPlayAgent:
             # 手番開始
             if self.playouts == 0:
                 # ハッシュクリア
-                self.node_hash.clear_hash(id)
+                self.node_hash.clear_hash(self.id)
 
                 # ルートノード展開
                 self.current_root = self.expand_node()
 
+                current_node = self.uct_node[self.current_root]
+
                 # 詰みのチェック
-                if self.uct_node[self.current_root].child_num == 0:
+                if current_node.child_num == 0:
                     if self.board.turn == BLACK:
                         game_result = WHITE_WIN
                     else:
@@ -293,9 +277,9 @@ class SelfPlayAgent:
 
                     self.next_game(game_result)
                     continue
-                elif self.uct_node[self.current_root].child_num == 1:
+                elif current_node.child_num == 1:
                     # 1手しかないときは、その手を指して次の手番へ
-                    self.do_move(uct_node[current_root].child[0].move)
+                    self.do_move(current_node.child_move[0])
                     self.playouts = 0
                     continue
                 elif self.board.is_nyugyoku():
@@ -309,12 +293,12 @@ class SelfPlayAgent:
                     continue
 
                 # ルート局面をキューに追加
-                self.grp.queuing_node(self.board, self.moves, self.current_root)
+                self.grp.queuing_node(self.board, self.moves, self.repetitions, self.current_root)
 
                 return
 
             # プレイアウト
-            result = self.uct_search(self.current_root, trajectories)
+            result = self.uct_search(self.current_root, 0, trajectories)
             if result != QUEUING:
                 self.next_step()
                 continue
@@ -333,10 +317,15 @@ class SelfPlayAgent:
             current_root_node = self.uct_node[self.current_root]
             child_move_count = current_root_node.child_move_count
             select_index = np.argmax(child_move_count)
+
+            assert child_move_count[select_index] != 0
     
             # 選択した着手の勝率の算出
             best_wp = current_root_node.child_win[select_index] / child_move_count[select_index]
             best_move = current_root_node.child_move[select_index]
+
+            if __debug__ : logging.debug('id:{} ply:{} sfen {} move:{} value:{:.2f}'.format(
+                self.id, self.board.move_number, self.board.sfen().decode('utf-8'), move_to_usi(best_move).decode('utf-8'), best_wp))
     
             # 勝率が閾値を超えた場合、ゲーム終了
             if WINRATE_THRESHOLD < abs(best_wp):
@@ -352,40 +341,66 @@ class SelfPlayAgent:
             self.add_teacher(current_root_node)
     
             # 一定の手数以上で引き分け
-            if self.board.ply >= MAX_MOVE_COUNT:
+            if self.board.move_number >= MAX_MOVE_COUNT:
                 self.next_game(DRAW)
                 return
     
             # 着手
             self.do_move(best_move)
+
+            # 千日手の場合引き分け
+            if self.repetitions[-1] == 4:
+                self.next_game(DRAW)
+                return
+
+            # 次の手番
             self.playouts = 0
 
     def next_game(self, game_result):
+        if __debug__ : logging.debug('id:{} ply:{} result:{}'.format(self.id, self.board.move_number, game_result))
+
         # 局面出力
         if len(self.chunk) > 0:
             # 勝敗を1局全てに付ける
             for i in range(len(self.chunk)):
                 self.chunk[i] += (game_result,)
             database.write_chunk(self.chunk)
-            made_teacher_nodes += len(self.chunk)
+            global written_nodes
+            global games
+            written_nodes += len(self.chunk)
             games += 1
     
+        # 進捗状況表示
+        print_progress()
+
         # 新しいゲーム
         self.playouts = 0
         self.board.reset()
         self.chunk.clear()
+        self.moves.clear()
         self.repetitions.clear()
+        self.repetitions.append(0)
 
     # UCB値が最大の手を求める
-    def select_max_ucb_child(self, current_node):
+    def select_max_ucb_child(self, current_node, depth):
         child_num = current_node.child_num
         child_win = current_node.child_win
         child_move_count = current_node.child_move_count
 
         q = np.divide(child_win, child_move_count, out=np.repeat(np.float32(0), child_num), where=child_move_count != 0)
         c = np.log((np.float32(current_node.move_count) + C_BASE + 1.0) / C_BASE) + C_INIT
-        u = np.sqrt(np.float32(current_node.move_count)) / (1 + child_move_count)
-        ucb = q + c * u * current_node.nnrate
+        if current_node.move_count == 0:
+            u = 1.0
+        else:
+            u = np.sqrt(np.float32(current_node.move_count)) / (1 + child_move_count)
+        if depth == 0:
+            # Dirichlet noise
+            eta = np.random.dirichlet([ALPHA] * len(current_node.nnrate))
+            p = (1 - EPSILON) * current_node.nnrate + EPSILON * eta
+        else:
+            p = current_node.nnrate
+
+        ucb = q + c * u * p
 
         return np.argmax(ucb)
 
@@ -424,7 +439,7 @@ class SelfPlayAgent:
     def interruption_check(self):
         child_num = self.uct_node[self.current_root].child_num
         child_move_count = self.uct_node[self.current_root].child_move_count
-        rest = self.po_info.halt - self.po_info.count
+        rest = num_playouts - self.playouts
 
         # 探索回数が最も多い手と次に多い手を求める
         second, first = child_move_count[np.argpartition(child_move_count, -2)[-2:]]
@@ -436,7 +451,7 @@ class SelfPlayAgent:
             return False
 
     # UCT探索
-    def uct_search(self, current, trajectories):
+    def uct_search(self, current, depth, trajectories):
         current_node = self.uct_node[current]
 
         # 詰みのチェック
@@ -448,12 +463,12 @@ class SelfPlayAgent:
         child_index = current_node.child_index
 
         # UCB値が最大の手を求める
-        next_index = self.select_max_ucb_child(current_node)
+        next_index = self.select_max_ucb_child(current_node, depth)
         # 選んだ手を着手
         self.do_move(child_move[next_index])
 
         # 経路を記録
-        trajectories.append((current_node, next_index))
+        trajectories.append((current, next_index))
 
         # ノードの展開の確認
         if child_index[next_index] == NOT_EXPANDED:
@@ -477,7 +492,7 @@ class SelfPlayAgent:
                 result = QUEUING
         else:
             # 手番を入れ替えて1手深く読む
-            result = self.uct_search(child_index[next_index], trajectories)
+            result = self.uct_search(child_index[next_index], depth + 1, trajectories)
 
         # 手を戻す
         self.undo_move()
@@ -486,9 +501,6 @@ class SelfPlayAgent:
             return QUEUING
 
         # 探索結果の反映
-        current_node.win += result
-        current_node.move_count += 1
-        current_node.child_win[next_index] += result
-        current_node.child_move_count[next_index] += 1
+        update_result(current_node, next_index, result)
 
         return -result

@@ -14,7 +14,7 @@
     <RootNamespace>dlshogi_basic_zero</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>h:\record.db h:\model.h5 --batchsize 1</CommandLineArguments>
+    <CommandLineArguments>h:\record.db h:\model.h5 --batchsize 2 --num_playouts 100</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

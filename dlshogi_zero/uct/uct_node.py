@@ -24,7 +24,7 @@ class NodeHash:
         self.used = 0
         self.enough_size = True
         self.node_hash = None
-        self.node_hash = [NodeHashEntry()] * hash_size
+        self.node_hash = [NodeHashEntry() for _ in range(hash_size)]
 
     # 配列の添え字でノードを取得する
     def __getitem__(self, i):
@@ -37,7 +37,7 @@ class NodeHash:
         for node in self.node_hash:
             if node.id == id:
                 node.id = NOT_USE
-                used -= 1
+                self.used -= 1
 
     # 未使用のインデックスを探して返す
     def search_empty_index(self, hash, color, moves, id):
