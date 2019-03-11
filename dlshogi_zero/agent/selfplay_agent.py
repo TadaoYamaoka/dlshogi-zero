@@ -11,6 +11,7 @@ from array import array
 from collections import defaultdict
 import time
 import logging
+import os
 
 RES_BLOCKS = 10
 FILTERS = 192
@@ -37,6 +38,7 @@ limit_games = 10000
 num_playouts = 800
 games = 0
 start_time = time.time()
+stopflg = False
 
 def init_database(filepath):
     global database
@@ -102,7 +104,7 @@ class SelfPlayAgentGroup:
         trajectories_batch = [[] for _ in range(self.policy_value_batch_maxsize)]
 
         # 全スレッドが生成したゲーム数が上限ゲーム数以上になったら終了
-        while games < limit_games:
+        while games < limit_games and not stopflg:
             self.current_policy_value_batch_index = 0
 
             # すべての対局についてシミュレーションを行う
@@ -131,6 +133,10 @@ class SelfPlayAgentGroup:
 
         # 結果表示
         print_result()
+
+        # stopファイルで終了した場合、ファイルを削除する
+        if stopflg:
+            os.remove('stop')
 
         self.running = False
 
@@ -372,6 +378,11 @@ class SelfPlayAgent:
     
         # 進捗状況表示
         print_progress()
+
+        # stopファイルが存在する場合終了する
+        if os.path.exists('stop'):
+            global stopflg
+            stopflg = True
 
         # 新しいゲーム
         self.playouts = 0
