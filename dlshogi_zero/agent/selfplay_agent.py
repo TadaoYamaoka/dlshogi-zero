@@ -243,7 +243,7 @@ class SelfPlayAgent:
         for prev in range(hist):
             hcprs[prev] = self.hcprs[i - prev]
 
-        self.chunk.append((hcprs.data, self.board.move_number, np.array(legal_moves, dtype=dtypeMove).data, visits.data))
+        self.chunk.append((hcprs.data, self.board.move_number, np.array(legal_moves, dtype=dtypeMove16).data, visits.data))
         global positions
         positions += 1
 
@@ -271,6 +271,8 @@ class SelfPlayAgent:
                     continue
                 elif current_node.child_num == 1:
                     # 1手しかないときは、その手を指して次の手番へ
+                    self.board.to_hcp(self.hcprs[self.board.move_number - 1]['hcp'])
+                    self.hcprs[self.board.move_number - 1]['repetition'] = self.repetitions[-1]
                     self.do_move(current_node.child_move[0])
                     self.playouts = 0
                     continue
@@ -305,10 +307,15 @@ class SelfPlayAgent:
         # 探索終了判定
         if self.interruption_check():
     
-            # 探索回数最大の手を見つける
             current_root_node = self.uct_node[self.current_root]
             child_move_count = current_root_node.child_move_count
-            select_index = np.argmax(child_move_count)
+
+            # 30手目までは訪問回数に応じた確率で手を選択する
+            if self.board.move_number <= 30:
+                select_index = np.random.choice(current_root_node.child_num, p=child_move_count/child_move_count.sum())
+            else:
+                # 31手目以降は探索回数最大の手を選択する
+                select_index = np.argmax(child_move_count)
 
             assert child_move_count[select_index] != 0
     
@@ -357,6 +364,7 @@ class SelfPlayAgent:
             for i in range(len(self.chunk)):
                 self.chunk[i] += (game_result,)
             database.write_chunk(self.chunk)
+
             global written_positions
             global games
             written_positions += len(self.chunk)
@@ -372,6 +380,7 @@ class SelfPlayAgent:
         self.moves.clear()
         self.repetitions.clear()
         self.repetitions.append(0)
+        self.repetition_hash.clear()
 
     # UCB値が最大の手を求める
     def select_max_ucb_child(self, current_node, depth):
@@ -419,7 +428,7 @@ class SelfPlayAgent:
         current_node.child_move = [move for move in self.board.legal_moves]
         child_num = len(current_node.child_move)
         current_node.child_index = [NOT_EXPANDED for _ in range(child_num)]
-        current_node.child_move_count = np.zeros(child_num, dtype=np.int32)
+        current_node.child_move_count = np.zeros(child_num, dtype=dtypeVisit)
         current_node.child_win = np.zeros(child_num, dtype=np.float32)
 
         # 子ノードの個数を設定

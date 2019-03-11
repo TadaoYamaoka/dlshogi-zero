@@ -1,7 +1,8 @@
 ﻿import tensorflow as tf
+from tensorflow.keras.models import load_model
 import numpy as np
 from cshogi import *
-from dlshogi_zero.nn.resnet import ResNet
+from dlshogi_zero.nn.resnet import ResNet, Bias
 from dlshogi_zero.features import *
 from dlshogi_zero.database import *
 import os
@@ -45,13 +46,17 @@ def categorical_accuracy(y_true, y_pred):
 def binary_accuracy(y_true, y_pred):
     return tf.keras.metrics.binary_accuracy(tf.keras.backend.round((y_true + 1) / 2), y_pred, threshold=0)
 
-def train(training_database_path, test_database_path, model_path, batchsize, steps, test_steps, window_size, weight_decay, use_tpu):
-    model = ResNet(res_blocks=10, filters=192)
+def train(training_database_path, test_database_path, model_path, resume, batchsize, steps, test_steps, window_size, weight_decay, use_tpu):
 
-    # add weight decay
-    for layer in model.layers:
-        if isinstance(layer, tf.keras.layers.Conv2D) or isinstance(layer, tf.keras.layers.Dense):
-            layer.add_loss(tf.keras.regularizers.l2(weight_decay)(layer.kernel))
+    if resume is not None:
+        model = load_model(resume, custom_objects={'Bias': Bias})
+    else:
+        model = ResNet()
+
+        # add weight decay
+        for layer in model.layers:
+            if isinstance(layer, tf.keras.layers.Conv2D) or isinstance(layer, tf.keras.layers.Dense):
+                layer.add_loss(tf.keras.regularizers.l2(weight_decay)(layer.kernel))
 
     model.compile(optimizer=tf.train.MomentumOptimizer(learning_rate=0.01, momentum=0.9),
                   loss={'policy': categorical_crossentropy, 'value': 'mse'},
@@ -78,6 +83,7 @@ if __name__ == '__main__':
     parser.add_argument('training_database')
     parser.add_argument('test_database')
     parser.add_argument('model', default='model.h5')
+    parser.add_argument('--resume', '-r')
     parser.add_argument('--batchsize', type=int, default=256)
     parser.add_argument('--steps', type=int, default=1000)
     parser.add_argument('--test_steps', type=int, default=100)
@@ -90,6 +96,7 @@ if __name__ == '__main__':
     train(args.training_database,
           args.test_database,
           args.model,
+          args.resume,
           args.batchsize,
           args.steps,
           args.test_steps,

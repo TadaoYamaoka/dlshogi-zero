@@ -18,7 +18,6 @@ def run(record_filepath, model_path, batch_size):
 
 if __name__ == '__main__':
     import argparse
-    import signal
 
     parser = argparse.ArgumentParser()
     parser.add_argument('database', default='record.db')

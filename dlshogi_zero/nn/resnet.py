@@ -1,7 +1,11 @@
 ﻿import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Layer, Input, Dense, Conv2D, BatchNormalization, Activation, Flatten, Add
-from dlshogi_zero.features import MAX_FEATURES
+from dlshogi_zero.features import MAX_FEATURES, MAX_ACTION_PLANES
+
+RES_BLOCKS = 10
+FILTERS = 192
+FCL_UNITS = 256
 
 class Bias(Layer):
     def __init__(self, **kwargs):
@@ -35,10 +39,10 @@ def conv_layer(inputs,
     return x
 
 def ResNet(input_planes=MAX_FEATURES,
-           res_blocks=20,
-           filters=256,
-           fcl_units=256,
-           policy_planes=139):
+           res_blocks=RES_BLOCKS,
+           filters=FILTERS,
+           fcl_units=FCL_UNITS,
+           policy_planes=MAX_ACTION_PLANES):
 
     inputs = Input(shape=(input_planes, 9, 9))
     x = conv_layer(inputs, filters=filters, use_bias=False)

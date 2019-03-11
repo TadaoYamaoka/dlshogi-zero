@@ -4,7 +4,8 @@ import math
 MAX_HISTORY = 8
 FEATURES_PER_HISTORY = 45
 MAX_FEATURES = FEATURES_PER_HISTORY * MAX_HISTORY + 2
-MAX_ACTION_LABELS = (64+2+64+2+7)*81
+MAX_ACTION_PLANES = 64 + 2 + 64 + 2 + 7
+MAX_ACTION_LABELS = MAX_ACTION_PLANES * 81
 
 def make_position_features(board, repetition, features, hist):
     # Input features

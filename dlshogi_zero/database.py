@@ -49,7 +49,7 @@ class TrainingDataBase:
             yield (
                 np.frombuffer(data[0], dtype=HcpAndRepetition),
                 data[1],
-                np.frombuffer(data[2], dtype=dtypeMove),
+                np.frombuffer(data[2], dtype=dtypeMove16),
                 np.frombuffer(data[3], dtype=dtypeVisit),
                 data[4]
                 )

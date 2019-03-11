@@ -31,7 +31,7 @@ def process_csa(database, csa_file_list):
                 repetitions[board.zobrist_hash()] += 1
             game_hcprs[i]['repetition'] = repetitions[board.zobrist_hash()]
             # legalMoves
-            legal_moves = np.empty(1, dtypeMove)
+            legal_moves = np.empty(1, dtypeMove16)
             legal_moves[0] = move16(move) # 指し手のみ
             # totalMoveCount
             total_move_count = board.move_number
