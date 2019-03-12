@@ -17,13 +17,7 @@ def make_position_features(board, repetition, features, hist):
 
     hfeatures = features[FEATURES_PER_HISTORY * hist:FEATURES_PER_HISTORY * (hist + 1)]
     # piece
-    pieces = board.pieces
-    for sq in SQUARES:
-        piece = pieces[sq]
-        if piece != NONE:
-            if piece >= WPAWN:
-                piece = piece - 2
-            hfeatures[piece - 1][sq] = 1
+    board.piece_planes(hfeatures)
     # repetition
     if repetition == 1:
         hfeatures[28].fill(1)
