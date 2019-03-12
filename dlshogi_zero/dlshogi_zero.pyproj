@@ -32,7 +32,6 @@
   <ItemGroup>
     <Compile Include="agent\selfplay_agent.py" />
     <Compile Include="database.py" />
-    <Compile Include="features.pyx" />
     <Compile Include="nn\resnet.py" />
     <Compile Include="selfplay.py">
       <SubType>Code</SubType>
