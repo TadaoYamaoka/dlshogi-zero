@@ -418,7 +418,7 @@ class SelfPlayAgent:
 
     # ノードの展開
     def expand_node(self):
-        index = self.node_hash.find_same_hash_index(self.board.zobrist_hash(), self.board.turn, self.board.move_number)
+        index = self.node_hash.find_same_hash_index(self.board.zobrist_hash(), self.board.move_number)
 
         # 合流先が検知できれば, それを返す
         if not index == UCT_HASH_SIZE:
