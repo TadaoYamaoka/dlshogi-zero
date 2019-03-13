@@ -258,8 +258,8 @@ class SelfPlayAgent:
         while True:
             # 手番開始
             if self.playouts == 0:
-                # ハッシュの世代を新しくする
-                self.node_hash.new_generation()
+                # ハッシュをクリアする
+                self.node_hash.clear()
 
                 # ルートノード展開
                 self.current_root = self.expand_node()
