@@ -11,6 +11,9 @@ import time
 import logging
 import os
 
+# ハッシュサイズ
+UCT_HASH_SIZE = 4096 # 2のn乗であること
+
 # UCBの定数
 C_BASE = 19652
 C_INIT = 1.25
@@ -211,13 +214,11 @@ class SelfPlayAgent:
         self.moves.append(move)
         self.board.push(move)
         key = self.board.zobrist_hash()
-        if self.board.is_draw() == REPETITION_DRAW:
-            self.repetition_hash[key] += 1
-        self.repetitions.append(self.repetition_hash[key])
+        self.repetition_hash[key] += 1
+        self.repetitions.append(self.repetition_hash[key] - 1)
 
     def undo_move(self):
-        if self.repetitions[-1] > 0:
-            self.repetition_hash[self.board.zobrist_hash()] -= 1
+        self.repetition_hash[self.board.zobrist_hash()] -= 1
         self.repetitions.pop()
         self.board.pop(self.moves[-1])
         self.moves.pop()
