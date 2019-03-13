@@ -6,8 +6,6 @@ from dlshogi_zero.features import *
 from dlshogi_zero.database import *
 from dlshogi_zero.uct.uct_node import *
 
-from threading import Thread, Lock
-from array import array
 from collections import defaultdict
 import time
 import logging
@@ -34,7 +32,7 @@ written_positions = 0
 limit_games = 10000
 num_playouts = 800
 games = 0
-start_time = time.time()
+start_time = None
 stopflg = False
 
 def init_database(filepath):
@@ -97,6 +95,9 @@ class SelfPlayAgentGroup:
         self.agents = [SelfPlayAgent(self, i) for i in range(policy_value_batch_maxsize)]
 
     def selfplay(self):
+        global start_time
+        start_time = time.time()
+
         # 探索経路のバッチ
         trajectories_batch = [[] for _ in range(self.policy_value_batch_maxsize)]
 
