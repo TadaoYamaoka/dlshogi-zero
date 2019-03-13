@@ -1,7 +1,5 @@
 ﻿import shogi
 
-UCT_HASH_SIZE = 4096 # 2のn乗であること
-
 # 未展開のノードのインデックス
 NOT_EXPANDED = -1
 

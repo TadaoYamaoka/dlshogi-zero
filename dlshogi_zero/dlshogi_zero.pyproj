@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>9f78d98b-17e6-496b-aba2-56d423235939</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>selfplay.py</StartupFile>
+    <StartupFile>usi\usi_mcts_agent.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -30,6 +30,9 @@
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="agent\mcts_agent.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="agent\selfplay_agent.py" />
     <Compile Include="database.py" />
     <Compile Include="nn\resnet.py" />
@@ -40,9 +43,14 @@
     <Compile Include="csa_to_training_data.py" />
     <Compile Include="train_from_hcpe.py" />
     <Compile Include="uct\uct_node.py" />
+    <Compile Include="usi\usi_mcts_agent.py" />
+    <Compile Include="usi\usi.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="agent\" />
+    <Folder Include="usi\" />
     <Folder Include="nn\" />
     <Folder Include="uct\" />
   </ItemGroup>
