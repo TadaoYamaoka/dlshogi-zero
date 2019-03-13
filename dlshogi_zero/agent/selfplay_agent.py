@@ -101,7 +101,7 @@ class SelfPlayAgentGroup:
         # 探索経路のバッチ
         trajectories_batch = [[] for _ in range(self.policy_value_batch_maxsize)]
 
-        # 全スレッドが生成したゲーム数が上限ゲーム数以上になったら終了
+        # すべてのエージェントが生成したゲーム数が上限ゲーム数以上になったら終了
         while games < limit_games and not stopflg:
             self.current_policy_value_batch_index = 0
 
