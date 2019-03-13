@@ -13,9 +13,6 @@ import time
 import logging
 import os
 
-RES_BLOCKS = 10
-FILTERS = 192
-
 # UCBの定数
 C_BASE = 19652
 C_INIT = 1.25
