@@ -83,8 +83,6 @@ class SelfPlayAgentGroup:
     def __init__(self, model_path, policy_value_batch_maxsize):
         self.model = load_model(model_path, custom_objects={'Bias': Bias})
 
-        self.running = True
-
         # キュー
         self.policy_value_batch_maxsize = policy_value_batch_maxsize
         self.features = np.empty((policy_value_batch_maxsize, MAX_FEATURES, 81), dtype=np.float32)
@@ -135,8 +133,6 @@ class SelfPlayAgentGroup:
         # stopファイルで終了した場合、ファイルを削除する
         if stopflg:
             os.remove('stop')
-
-        self.running = False
 
     # 局面の評価
     def eval_node(self):
