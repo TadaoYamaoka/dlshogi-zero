@@ -4,8 +4,6 @@ from threading import Thread
 import logging
 import os
 
-logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG if __debug__ else logging.INFO)
-
 def run(record_filepath, model_path, batch_size):
     init_database(record_filepath)
 
@@ -25,8 +23,11 @@ if __name__ == '__main__':
     parser.add_argument('--batchsize', type=int, default=256)
     parser.add_argument('--limit_games', type=int, default=10000)
     parser.add_argument('--num_playouts', type=int, default=800)
+    parser.add_argument('--log')
 
     args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename=args.log, level=logging.DEBUG if __debug__ else logging.INFO)
 
     logging.info('batchsize : {}'.format(args.batchsize))
     logging.info('limit_games : {}'.format(args.limit_games))
