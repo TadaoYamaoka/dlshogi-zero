@@ -112,6 +112,7 @@ class MCTSPlayer(BasePlayer):
         print('readyok')
     
     def position(self, moves):
+        self.moves.clear()
         self.repetitions.clear()
         self.repetitions.append(0)
         self.repetition_hash.clear()
@@ -391,6 +392,10 @@ class MCTSPlayer(BasePlayer):
         if current_node.child_num == 0:
             return 1.0 # 反転して値を返すため1を返す
 
+        # 千日手チェック
+        if self.repetitions[-1] == 4:
+            return 0.0
+
         # 他の探索がpolicy計算中のため破棄する
         if current_node.evaled == False:
             return DISCARDED
@@ -418,15 +423,19 @@ class MCTSPlayer(BasePlayer):
             child_index[next_index] = index
             child_node = self.uct_node[index]
 
-            if child_node.evaled:
-                # 合流
-                # valueを報酬として返す
-                result = -child_node.value_win
-            elif child_node.child_num == 0:
+            if child_node.child_num == 0:
                 # 詰み
                 child_node.value_win = -1.0
                 child_node.evaled = True
-                result = 1.0
+                result = 1.0 # 反転して値を返すため1を設定
+            elif self.repetitions[-1] == 4:
+                # 千日手
+                # 経路によって判定が異なるためvalueを上書きしない
+                result = 0.0
+            elif child_node.evaled:
+                # 合流
+                # valueを報酬として返す
+                result = -child_node.value_win
             else:
                 # ノードをキューに追加
                 self.queuing_node(self.board, self.moves, self.repetitions, child_node)
