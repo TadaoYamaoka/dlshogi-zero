@@ -53,10 +53,10 @@ def train(training_database_path, test_database_path, model_path, resume, batchs
     else:
         model = ResNet()
 
-        # add weight decay
-        for layer in model.layers:
-            if isinstance(layer, tf.keras.layers.Conv2D) or isinstance(layer, tf.keras.layers.Dense):
-                layer.add_loss(tf.keras.regularizers.l2(weight_decay)(layer.kernel))
+    # add weight decay
+    for layer in model.layers:
+        if isinstance(layer, tf.keras.layers.Conv2D) or isinstance(layer, tf.keras.layers.Dense):
+            layer.add_loss(tf.keras.regularizers.l2(weight_decay)(layer.kernel))
 
     model.compile(optimizer=tf.train.MomentumOptimizer(learning_rate=0.01, momentum=0.9),
                   loss={'policy': categorical_crossentropy, 'value': 'mse'},
