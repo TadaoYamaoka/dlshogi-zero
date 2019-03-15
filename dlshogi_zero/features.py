@@ -69,29 +69,29 @@ def make_action_label(move):
             # Queen moves
             if diff_file < 0:
                 if diff_rank < 0:
-                    move_dd = -diff_file - 1
+                    move_dd = -diff_file - 1 # NE
                 elif diff_rank > 0:
-                    move_dd = 8 - diff_file - 1
+                    move_dd = 8 - diff_file - 1 # SE
                 else:
-                    move_dd = 16 - diff_file - 1
+                    move_dd = 16 - diff_file - 1 # E
             elif diff_file > 0:
                 if diff_rank < 0:
-                    move_dd = 24 + diff_file - 1
+                    move_dd = 24 + diff_file - 1 # NW
                 elif diff_rank > 0:
-                    move_dd = 32 + diff_file - 1
+                    move_dd = 32 + diff_file - 1 # SW
                 else:
-                    move_dd = 40 + diff_file - 1
+                    move_dd = 40 + diff_file - 1 # W
             else:
                 if diff_rank < 0:
-                    move_dd = 48 - diff_rank - 1
+                    move_dd = 48 - diff_rank - 1 # N
                 else:
-                    move_dd = 56 + diff_rank - 1
+                    move_dd = 56 + diff_rank - 1 # S
         else:
             # Knight moves
             if diff_file < 0:
-                move_dd = 64
+                move_dd = 64 # E
             else:
-                move_dd = 65
+                move_dd = 65 # W
 
         promotion = 1 if move_is_promotion(move) else 0
 
