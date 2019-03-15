@@ -5,6 +5,7 @@ from dlshogi_zero.nn.resnet import Bias
 from dlshogi_zero.features import *
 from dlshogi_zero.database import *
 from dlshogi_zero.uct.uct_node import *
+from dlshogi_zero.player.base_player import BasePlayer
 
 from collections import defaultdict
 import time
@@ -61,7 +62,7 @@ class PlayoutInfo:
         self.halt = 0 # 探索を打ち切る回数
         self.count = 0 # 現在の探索回数
         
-class MCTSAgent:
+class MCTSPlayer(BasePlayer):
     def __init__(self, policy_value_batch_maxsize):
         # モデルファイルのパス
         self.modelfile = r'H:\model.h5'
@@ -89,14 +90,11 @@ class MCTSAgent:
         self.current_policy_value_batch_index = 0
 
     def usi(self):
-        print('id name mcts_agent')
+        print('id name dlshogi-zero')
         print('option name modelfile type string default ' + self.modelfile)
         print('option name playout type spin default ' + str(self.playout) + ' min 100 max 10000')
         print('option name temperature type spin default ' + str(int(TEMPERATURE * 100)) + ' min 10 max 1000')
         print('usiok')
-
-    def usinewgame(self):
-        pass
 
     def setoption(self, option):
         if option[1] == 'modelfile':
@@ -249,9 +247,6 @@ class MCTSAgent:
             cp, move_to_usi(bestmove).decode()))
 
         print('bestmove', move_to_usi(bestmove).decode())
-
-    def quit(self):
-        pass
 
     # 局面の評価
     def eval_node(self):

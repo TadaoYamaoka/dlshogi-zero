@@ -30,7 +30,8 @@
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="agent\mcts_agent.py">
+    <Compile Include="player\base_player.py" />
+    <Compile Include="player\mcts_player.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="agent\selfplay_agent.py" />
@@ -51,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="agent\" />
+    <Folder Include="player\" />
     <Folder Include="usi\" />
     <Folder Include="nn\" />
     <Folder Include="uct\" />
