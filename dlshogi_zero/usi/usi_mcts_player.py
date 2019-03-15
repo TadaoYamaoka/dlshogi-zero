@@ -1,8 +1,8 @@
 ﻿from dlshogi_zero.usi.usi import *
-from dlshogi_zero.agent.mcts_agent import MCTSAgent
+from dlshogi_zero.player.mcts_player import MCTSPlayer
 
 def run():
-    player = MCTSAgent(192)
+    player = MCTSPlayer(192)
     usi(player)
 
 if __name__ == '__main__':

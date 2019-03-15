@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>9f78d98b-17e6-496b-aba2-56d423235939</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>usi\usi_mcts_agent.py</StartupFile>
+    <StartupFile>usi\usi_mcts_player.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -45,7 +45,7 @@
     <Compile Include="csa_to_training_data.py" />
     <Compile Include="train_from_hcpe.py" />
     <Compile Include="uct\uct_node.py" />
-    <Compile Include="usi\usi_mcts_agent.py" />
+    <Compile Include="usi\usi_mcts_player.py" />
     <Compile Include="usi\usi.py">
       <SubType>Code</SubType>
     </Compile>
