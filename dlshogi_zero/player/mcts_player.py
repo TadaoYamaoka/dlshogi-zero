@@ -109,6 +109,12 @@ class MCTSPlayer(BasePlayer):
         # モデルをロード
         self.model = load_model(self.modelfile, custom_objects={'Bias': Bias})
 
+        # 1手目を速くするためモデルをキャッシュする
+        self.current_root = self.expand_node()
+        current_node = self.uct_node[self.current_root]
+        self.queuing_node(self.board, self.moves, self.repetitions, current_node)
+        self.eval_node()
+
         print('readyok')
     
     def position(self, moves):
