@@ -7,28 +7,14 @@ RES_BLOCKS = 10
 FILTERS = 192
 FCL_UNITS = 256
 
-class Bias(Layer):
-    def __init__(self, **kwargs):
-        super(Bias, self).__init__(**kwargs)
-
-    def build(self, input_shape):
-        self.b = self.add_weight(name='b',
-                                 shape=(input_shape[1:]),
-                                 initializer='zeros',
-                                 trainable=True)
-        super(Bias, self).build(input_shape)
-
-    def call(self, x):
-        return x + self.b
-
 def conv_layer(inputs,
                filters,
+               kernel_size=3,
                activation='relu',
                use_bias=True):
 
     x =  Conv2D(filters,
-                kernel_size=3,
-                strides=1,
+                kernel_size=kernel_size,
                 padding='same',
                 data_format='channels_first',
                 kernel_initializer='he_normal',
@@ -54,19 +40,17 @@ def ResNet(input_planes=MAX_FEATURES,
         x = Add()([x, y])
         x = Activation('relu')(x)
 
-    # Add policy output
+    # Add policy head
+    policy_x = conv_layer(x, filters=filters)
     policy_x = Conv2D(policy_planes,
-                      kernel_size=1,
-                      strides=1,
+                      kernel_size=3,
                       padding='same',
                       data_format='channels_first',
-                      kernel_initializer='he_normal',
-                      use_bias=False)(x)
-    policy_x = Flatten()(policy_x)
-    policy_y = Bias(name='policy')(policy_x)
+                      kernel_initializer='he_normal')(policy_x)
+    policy_y = Flatten(name='policy')(policy_x)
 
-    # Add value output
-    value_x = conv_layer(x, filters=1)
+    # Add value head
+    value_x = conv_layer(x, filters=1, kernel_size=1)
     value_x = Flatten()(value_x)
     value_x = Dense(fcl_units,
                     activation='relu',

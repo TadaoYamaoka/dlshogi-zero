@@ -2,7 +2,7 @@
 from tensorflow.keras.models import load_model
 import numpy as np
 from cshogi import *
-from dlshogi_zero.nn.resnet import ResNet, Bias
+from dlshogi_zero.nn.resnet import ResNet
 from dlshogi_zero.features import *
 from dlshogi_zero.database import *
 import os
@@ -49,7 +49,7 @@ def binary_accuracy(y_true, y_pred):
 def train(training_database_path, test_database_path, model_path, resume, batchsize, steps, test_steps, window_size, weight_decay, use_tpu):
 
     if resume is not None:
-        model = load_model(resume, custom_objects={'Bias': Bias})
+        model = load_model(resume)
     else:
         model = ResNet()
 

@@ -1,7 +1,6 @@
 ﻿from tensorflow.keras.models import load_model
 import numpy as np
 from cshogi import *
-from dlshogi_zero.nn.resnet import Bias
 from dlshogi_zero.features import *
 from dlshogi_zero.database import *
 from dlshogi_zero.uct.uct_node import *
@@ -107,7 +106,7 @@ class MCTSPlayer(BasePlayer):
 
     def isready(self):
         # モデルをロード
-        self.model = load_model(self.modelfile, custom_objects={'Bias': Bias})
+        self.model = load_model(self.modelfile)
 
         # 1手目を速くするためモデルをキャッシュする
         self.current_root = self.expand_node()

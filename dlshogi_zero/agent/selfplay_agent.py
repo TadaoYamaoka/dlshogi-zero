@@ -1,7 +1,6 @@
 ﻿from tensorflow.keras.models import load_model
 import numpy as np
 from cshogi import *
-from dlshogi_zero.nn.resnet import Bias
 from dlshogi_zero.features import *
 from dlshogi_zero.database import *
 from dlshogi_zero.uct.uct_node import *
@@ -84,7 +83,7 @@ def update_result(current_node, next_index, result):
 
 class SelfPlayAgentGroup:
     def __init__(self, model_path, policy_value_batch_maxsize):
-        self.model = load_model(model_path, custom_objects={'Bias': Bias})
+        self.model = load_model(model_path)
 
         # キュー
         self.policy_value_batch_maxsize = policy_value_batch_maxsize
