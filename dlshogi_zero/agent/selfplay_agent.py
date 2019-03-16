@@ -412,14 +412,14 @@ class SelfPlayAgent:
 
     # ノードの展開
     def expand_node(self):
-        index = self.node_hash.find_same_hash_index(self.board.zobrist_hash(), self.board.move_number)
+        index = self.node_hash.find_same_hash_index(self.board.zobrist_hash(), self.board.move_number, self.repetitions[-1])
 
         # 合流先が検知できれば, それを返す
         if not index == UCT_HASH_SIZE:
             return index
     
         # 空のインデックスを探す
-        index = self.node_hash.search_empty_index(self.board.zobrist_hash(), self.board.turn, self.board.move_number)
+        index = self.node_hash.search_empty_index(self.board.zobrist_hash(), self.board.move_number, self.repetitions[-1])
 
         # 現在のノードの初期化
         current_node = self.uct_node[index]
@@ -489,8 +489,6 @@ class SelfPlayAgent:
 
             if child_node.child_num == 0:
                 # 詰み
-                child_node.value_win = -1.0
-                child_node.evaled = True
                 result = 1.0 # 反転して値を返すため1を設定
             elif self.repetitions[-1] == 4:
                 # 千日手
