@@ -11,7 +11,7 @@ parser.add_argument('train_hcpe')
 parser.add_argument('test_hcpe')
 parser.add_argument('model')
 parser.add_argument('--batchsize', type=int, default=256)
-parser.add_argument('--epochs', default=1)
+parser.add_argument('--epochs', type=int, default=1)
 parser.add_argument('--use_tpu', action='store_true')
 
 args = parser.parse_args()
