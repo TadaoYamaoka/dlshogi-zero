@@ -47,7 +47,7 @@ def term_database():
 def print_progress():
     moves_per_game = written_positions / games
     limit_positions = moves_per_game * limit_games
-    progress = written_positions / limit_positions
+    progress = written_positions / limit_positions * 100.0
     elapsed_time = time.time() - start_time
     positions_per_sec = positions / elapsed_time
 
