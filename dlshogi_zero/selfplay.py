@@ -20,8 +20,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('database', default='record.db')
     parser.add_argument('model', default='model.h5')
-    parser.add_argument('--batchsize', type=int, default=256)
-    parser.add_argument('--limit_games', type=int, default=10000)
+    parser.add_argument('--batchsize', type=int, default=64)
+    parser.add_argument('--limit_games', type=int, default=1000)
     parser.add_argument('--num_playouts', type=int, default=800)
     parser.add_argument('--log')
 
