@@ -10,12 +10,14 @@ from collections import defaultdict
 MAX_MOVE_COUNT = 512
 
 # process csa
-def process_csa(database, csa_file_list):
+def process_csa(database, csa_file_list, filter_moves, filter_rating):
     board = Board()
     parser = Parser()
     for filepath in csa_file_list:
         parser.parse_csa_file(filepath.encode('utf-8'))
-        if parser.endgame not in (b'%TORYO', b'%SENNICHITE', b'%KACHI', b'%HIKIWAKE') or len(parser.moves) < args.filter_moves:
+        if parser.endgame not in (b'%TORYO', b'%SENNICHITE', b'%KACHI', b'%HIKIWAKE') or len(parser.moves) < filter_moves:
+            continue
+        if filter_rating > 0 and (parser.ratings[0] < filter_rating or parser.ratings[1] < filter_rating):
             continue
         board.set_sfen(parser.sfen)
         assert board.is_ok(), "{}:{}".format(filepath, parser.sfen)
@@ -65,6 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('csa_dir', help='directory stored CSA file')
     parser.add_argument('training_database', help='training database file')
     parser.add_argument('--filter_moves', type=int, default=50, help='filter by move count')
+    parser.add_argument('--filter_rating', type=int, default=0, help='filter by rating')
     parser.add_argument('--clear', action='store_true', help='clear database before processing')
 
     args = parser.parse_args()
@@ -76,6 +79,6 @@ if __name__ == '__main__':
     training_database = TrainingDataBase(args.training_database, args.clear)
     training_database.set_model_ver(0)
     logging.info('start process csa')
-    process_csa(training_database, csa_file_list)
+    process_csa(training_database, csa_file_list, args.filter_moves, args.filter_rating)
     training_database.close()
     logging.info('done')
