@@ -1,4 +1,6 @@
-﻿from tensorflow.keras.models import load_model
+﻿import tensorflow as tf
+from tensorflow.keras.backend import set_session
+from tensorflow.keras.models import load_model
 import numpy as np
 from cshogi import *
 from dlshogi_zero.features import *
@@ -9,6 +11,11 @@ from collections import defaultdict
 import time
 import logging
 import os
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
+set_session(sess)
 
 # ハッシュサイズ
 UCT_HASH_SIZE = 4096 # 2のn乗であること
