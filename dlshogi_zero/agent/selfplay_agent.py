@@ -111,7 +111,8 @@ class SelfPlayAgentGroup:
                 agent.playout(trajectories)
         
             # 評価
-            self.eval_node()
+            if self.current_policy_value_batch_index > 0:
+                self.eval_node()
 
             # バックアップ
             for trajectories in trajectories_batch:
