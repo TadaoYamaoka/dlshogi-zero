@@ -116,6 +116,13 @@ class MCTSPlayer(BasePlayer):
         if self.model is None:
             self.model = load_model(self.modelfile)
 
+        # 盤面情報をクリア
+        self.board.reset()
+        self.moves.clear()
+        self.repetitions.clear()
+        self.repetitions.append(0)
+        self.repetition_hash.clear()
+
         # 1手目を速くするためモデルをキャッシュする
         self.current_root = self.expand_node()
         current_node = self.uct_node[self.current_root]
