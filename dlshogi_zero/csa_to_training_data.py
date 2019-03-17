@@ -7,7 +7,7 @@ import os.path
 import math
 from collections import defaultdict
 
-MAX_MOVE_COUNT = 256
+MAX_MOVE_COUNT = 512
 
 # process csa
 def process_csa(database, csa_file_list):
@@ -18,6 +18,7 @@ def process_csa(database, csa_file_list):
         if parser.endgame not in (b'%TORYO', b'%SENNICHITE', b'%KACHI', b'%HIKIWAKE') or len(parser.moves) < args.filter_moves:
             continue
         board.set_sfen(parser.sfen)
+        assert board.is_ok(), "{}:{}".format(filepath, parser.sfen)
         chunk = []
         repetitions = defaultdict(int)
         game_hcprs = np.empty(MAX_MOVE_COUNT, dtype=HcpAndRepetition)
@@ -48,6 +49,7 @@ def process_csa(database, csa_file_list):
             for prev in range(hist):
                 hcprs[prev] = game_hcprs[i - prev]
 
+            assert board.is_legal(move), "{}:{}:{}".format(filepath, i, move_to_usi(move))
             board.push(move)
 
             chunk.append((hcprs.data, total_move_count, legal_moves.data, visits.data, game_result))

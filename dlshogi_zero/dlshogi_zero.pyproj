@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>9f78d98b-17e6-496b-aba2-56d423235939</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>usi\usi_mcts_player.py</StartupFile>
+    <StartupFile>csa_to_training_data.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -14,9 +14,10 @@
     <RootNamespace>dlshogi_basic_zero</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>h:\record.db h:\model.h5 --batchsize 192</CommandLineArguments>
+    <CommandLineArguments>r:\test r:\floodgate2015.db</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <InterpreterArguments>-O</InterpreterArguments>
+    <InterpreterArguments>
+    </InterpreterArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
