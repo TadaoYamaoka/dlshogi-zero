@@ -1,4 +1,6 @@
-﻿from tensorflow.keras.models import load_model
+﻿import tensorflow as tf
+from tensorflow.keras.backend import set_session
+from tensorflow.keras.models import load_model
 import numpy as np
 from cshogi import *
 from dlshogi_zero.features import *
@@ -11,6 +13,11 @@ import time
 import logging
 import os
 import math
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
+set_session(sess)
 
 # ハッシュサイズ
 UCT_HASH_SIZE = 16384 # 2のn乗であること
@@ -106,7 +113,8 @@ class MCTSPlayer(BasePlayer):
 
     def isready(self):
         # モデルをロード
-        self.model = load_model(self.modelfile)
+        if self.model is None:
+            self.model = load_model(self.modelfile)
 
         # 1手目を速くするためモデルをキャッシュする
         self.current_root = self.expand_node()
@@ -194,7 +202,8 @@ class MCTSPlayer(BasePlayer):
                     trajectories_batch.pop()
         
             # 評価
-            self.eval_node()
+            if self.current_policy_value_batch_index > 0:
+                self.eval_node()
 
             # バックアップ
             for trajectories in trajectories_batch:

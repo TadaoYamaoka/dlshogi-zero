@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>9f78d98b-17e6-496b-aba2-56d423235939</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>selfplay.py</StartupFile>
+    <StartupFile>usi\usi_mcts_player.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
