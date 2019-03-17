@@ -1,6 +1,4 @@
-﻿import shogi
-
-# 未展開のノードのインデックス
+﻿# 未展開のノードのインデックス
 NOT_EXPANDED = -1
 
 class UctNode:
