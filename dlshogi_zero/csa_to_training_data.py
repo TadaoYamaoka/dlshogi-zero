@@ -30,8 +30,7 @@ def process_csa(database, csa_file_list, filter_moves, filter_rating):
             # hcp
             board.to_hcp(game_hcprs[i]['hcp'])
             # repetition
-            if board.is_draw() == REPETITION_DRAW:
-                repetitions[board.zobrist_hash()] += 1
+            repetitions[board.zobrist_hash()] += 1
             game_hcprs[i]['repetition'] = repetitions[board.zobrist_hash()]
             # legalMoves
             legal_moves = np.empty(1, dtypeMove16)

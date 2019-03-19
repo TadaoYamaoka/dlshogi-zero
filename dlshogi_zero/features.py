@@ -22,11 +22,8 @@ def make_position_features(board, repetition, features, hist):
     if repetition == 1:
         hfeatures[28].fill(1)
     elif repetition == 2:
-        hfeatures[28].fill(1)
         hfeatures[29].fill(1)
     elif repetition == 3:
-        hfeatures[28].fill(1)
-        hfeatures[29].fill(1)
         hfeatures[30].fill(1)
     # prisoner count
     pieces_in_hand = board.pieces_in_hand

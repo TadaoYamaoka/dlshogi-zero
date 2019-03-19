@@ -328,7 +328,7 @@ class MCTSPlayer(BasePlayer):
         self.board.push(move)
         key = self.board.zobrist_hash()
         self.repetition_hash[key] += 1
-        self.repetitions.append(self.repetition_hash[key] - 1)
+        self.repetitions.append(self.repetition_hash[key])
 
     def undo_move(self):
         self.repetition_hash[self.board.zobrist_hash()] -= 1
@@ -415,7 +415,16 @@ class MCTSPlayer(BasePlayer):
 
         # 千日手チェック
         if self.repetitions[-1] == 4:
-            return 0.0
+            draw = self.board.is_draw()
+            if draw == REPETITION_WIN:
+                # 連続王手の千日手
+                return -1.0
+            elif draw == REPETITION_LOSE:
+                # 連続王手の千日手
+                return 1.0
+            else:
+                # 千日手
+                return 0.0
 
         # 他の探索がpolicy計算中のため破棄する
         if current_node.evaled == False:
@@ -448,9 +457,16 @@ class MCTSPlayer(BasePlayer):
                 # 詰み
                 result = 1.0 # 反転して値を返すため1を設定
             elif self.repetitions[-1] == 4:
-                # 千日手
-                # 経路によって判定が異なるためvalueを上書きしない
-                result = 0.0
+                draw = self.board.is_draw()
+                if draw == REPETITION_WIN:
+                    # 連続王手の千日手
+                    result = -1.0
+                elif draw == REPETITION_LOSE:
+                    # 連続王手の千日手
+                    result = 1.0
+                else:
+                    # 千日手
+                    result = 0.0
             elif child_node.evaled:
                 # 合流
                 # valueを報酬として返す

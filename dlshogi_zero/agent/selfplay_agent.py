@@ -218,11 +218,12 @@ class SelfPlayAgent:
 
     # 着手
     def do_move(self, move):
+        assert self.board.is_legal(move)
         self.moves.append(move)
         self.board.push(move)
         key = self.board.zobrist_hash()
         self.repetition_hash[key] += 1
-        self.repetitions.append(self.repetition_hash[key] - 1)
+        self.repetitions.append(self.repetition_hash[key])
 
     def undo_move(self):
         self.repetition_hash[self.board.zobrist_hash()] -= 1
@@ -355,9 +356,19 @@ class SelfPlayAgent:
             # 着手
             self.do_move(best_move)
 
-            # 千日手の場合引き分け
+            # 千日手チェック
             if self.repetitions[-1] == 4:
-                self.next_game(DRAW)
+                draw = self.board.is_draw()
+                if draw == REPETITION_WIN:
+                    # 連続王手の千日手
+                    game_result = BLACK_WIN if self.board.turn == BLACK else WHITE_WIN
+                elif draw == REPETITION_LOSE:
+                    # 連続王手の千日手
+                    game_result = BLACK_WIN if self.board.turn == WHITE else WHITE_WIN
+                else:
+                    # 千日手
+                    game_result = DRAW
+                self.next_game(game_result)
                 return
 
             # 次の手番
@@ -400,6 +411,8 @@ class SelfPlayAgent:
         child_num = current_node.child_num
         child_win = current_node.child_win
         child_move_count = current_node.child_move_count
+
+        assert child_num == len(current_node.nnrate)
 
         q = np.divide(child_win, child_move_count, out=np.repeat(np.float32(0), child_num), where=child_move_count != 0)
         c = np.log((np.float32(current_node.move_count) + C_BASE + 1.0) / C_BASE) + C_INIT
@@ -474,7 +487,16 @@ class SelfPlayAgent:
 
         # 千日手チェック
         if self.repetitions[-1] == 4:
-            return 0.0
+            draw = self.board.is_draw()
+            if draw == REPETITION_WIN:
+                # 連続王手の千日手
+                return -1.0
+            elif draw == REPETITION_LOSE:
+                # 連続王手の千日手
+                return 1.0
+            else:
+                # 千日手
+                return 0.0
 
         child_move = current_node.child_move
         child_move_count = current_node.child_move_count
@@ -499,9 +521,16 @@ class SelfPlayAgent:
                 # 詰み
                 result = 1.0 # 反転して値を返すため1を設定
             elif self.repetitions[-1] == 4:
-                # 千日手
-                # 経路によって判定が異なるためvalueを上書きしない
-                result = 0.0
+                draw = self.board.is_draw()
+                if draw == REPETITION_WIN:
+                    # 連続王手の千日手
+                    result = -1.0
+                elif draw == REPETITION_LOSE:
+                    # 連続王手の千日手
+                    result = 1.0
+                else:
+                    # 千日手
+                    result = 0.0
             elif child_node.evaled:
                 # 合流
                 # valueを報酬として返す

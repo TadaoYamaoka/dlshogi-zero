@@ -24,10 +24,11 @@ if __name__ == '__main__':
     parser.add_argument('--limit_games', type=int, default=1000)
     parser.add_argument('--num_playouts', type=int, default=800)
     parser.add_argument('--log')
+    parser.add_argument('--debug', action='store_true')
 
     args = parser.parse_args()
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename=args.log, level=logging.DEBUG if __debug__ else logging.INFO)
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename=args.log, level=logging.DEBUG if args.debug else logging.INFO)
 
     logging.info('batchsize : {}'.format(args.batchsize))
     logging.info('limit_games : {}'.format(args.limit_games))
