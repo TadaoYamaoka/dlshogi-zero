@@ -1,4 +1,5 @@
 ﻿import tensorflow as tf
+from tensorflow.keras.backend import set_session
 from tensorflow.keras.models import load_model
 import numpy as np
 from cshogi import *
@@ -6,6 +7,11 @@ from dlshogi_zero.nn.resnet import ResNet
 from dlshogi_zero.features import *
 from dlshogi_zero.database import *
 import os
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
+set_session(sess)
 
 def mini_batch(database, window_size, batch_size):
     board = Board()
