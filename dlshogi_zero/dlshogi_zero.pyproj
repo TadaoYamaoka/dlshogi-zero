@@ -32,6 +32,9 @@
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="init_model.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="player\base_player.py" />
     <Compile Include="player\mcts_player.py">
       <SubType>Code</SubType>
