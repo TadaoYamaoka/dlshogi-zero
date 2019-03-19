@@ -412,8 +412,6 @@ class SelfPlayAgent:
         child_win = current_node.child_win
         child_move_count = current_node.child_move_count
 
-        assert child_num == len(current_node.nnrate)
-
         q = np.divide(child_win, child_move_count, out=np.repeat(np.float32(0), child_num), where=child_move_count != 0)
         c = np.log((np.float32(current_node.move_count) + C_BASE + 1.0) / C_BASE) + C_INIT
         if current_node.move_count == 0:
