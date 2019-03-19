@@ -35,7 +35,7 @@ class TrainingDataBase:
         self.model_ver = model_ver
 
     def write_chunk(self, chunk):
-        self.cur.executemany('INSERT INTO training_data VALUES ({}, {}, ?, ?, ?, ?, ?)'.format(self.current_game_id, self.current_game_id), chunk)
+        self.cur.executemany('INSERT INTO training_data VALUES ({}, {}, ?, ?, ?, ?, ?)'.format(self.current_game_id, self.model_ver), chunk)
         self.current_game_id += 1
         if self.current_game_id % COMMIT_INTERVAL == 0:
             self.con.commit()
