@@ -179,7 +179,7 @@ class SelfPlayAgentGroup:
         self.features[self.current_policy_value_batch_index].fill(0)
 
         # 入力特徴量に現局面を設定
-        make_position_features(board, repetitions[0], self.features[self.current_policy_value_batch_index], 0)
+        make_position_features(board, repetitions[-1], self.features[self.current_policy_value_batch_index], 0)
 
         # 入力特徴量に履歴局面を設定
         for i, (move, repetition) in enumerate(zip(moves[-1:-MAX_HISTORY:-1], repetitions[-2:-MAX_HISTORY-1:-1])):
@@ -214,7 +214,7 @@ class SelfPlayAgent:
         # 履歴局面
         self.hcprs = np.empty(MAX_MOVE_COUNT, dtype=HcpAndRepetition)
         # 同一局面の繰り返し数
-        self.repetitions = [0]
+        self.repetitions = [1]
         self.repetition_hash = defaultdict(int)
 
     # 着手
@@ -404,7 +404,7 @@ class SelfPlayAgent:
         self.chunk.clear()
         self.moves.clear()
         self.repetitions.clear()
-        self.repetitions.append(0)
+        self.repetitions.append(1)
         self.repetition_hash.clear()
 
     # UCB値が最大の手を求める

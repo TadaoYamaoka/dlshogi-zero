@@ -78,7 +78,7 @@ class MCTSPlayer(BasePlayer):
         self.moves = []
         
         # 同一局面の繰り返し数
-        self.repetitions = [0]
+        self.repetitions = [1]
         self.repetition_hash = defaultdict(int)
 
         # ハッシュ
@@ -120,7 +120,7 @@ class MCTSPlayer(BasePlayer):
         self.board.reset()
         self.moves.clear()
         self.repetitions.clear()
-        self.repetitions.append(0)
+        self.repetitions.append(1)
         self.repetition_hash.clear()
 
         # 1手目を速くするためモデルをキャッシュする
@@ -134,7 +134,7 @@ class MCTSPlayer(BasePlayer):
     def position(self, moves):
         self.moves.clear()
         self.repetitions.clear()
-        self.repetitions.append(0)
+        self.repetitions.append(1)
         self.repetition_hash.clear()
 
         if moves[0] == 'startpos':
@@ -304,7 +304,7 @@ class MCTSPlayer(BasePlayer):
         self.features[self.current_policy_value_batch_index].fill(0)
 
         # 入力特徴量に現局面を設定
-        make_position_features(board, repetitions[0], self.features[self.current_policy_value_batch_index], 0)
+        make_position_features(board, repetitions[-1], self.features[self.current_policy_value_batch_index], 0)
 
         # 入力特徴量に履歴局面を設定
         for i, (move, repetition) in enumerate(zip(moves[-1:-MAX_HISTORY:-1], repetitions[-2:-MAX_HISTORY-1:-1])):
