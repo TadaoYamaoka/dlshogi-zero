@@ -44,9 +44,10 @@ games = 0
 start_time = None
 stopflg = False
 
-def init_database(filepath):
+def init_database(filepath, model_ver):
     global database
     database = TrainingDataBase(filepath)
+    database.set_model_ver(model_ver)
 
 def term_database():
     database.close()

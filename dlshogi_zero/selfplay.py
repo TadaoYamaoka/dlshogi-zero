@@ -4,8 +4,8 @@ from threading import Thread
 import logging
 import os
 
-def run(record_filepath, model_path, batch_size):
-    init_database(record_filepath)
+def run(record_filepath, model_path, batch_size, model_ver):
+    init_database(record_filepath, model_ver)
 
     agent_group = SelfPlayAgentGroup(model_path, batch_size)
 
@@ -23,6 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--batchsize', type=int, default=64)
     parser.add_argument('--limit_games', type=int, default=1000)
     parser.add_argument('--num_playouts', type=int, default=800)
+    parser.add_argument('--model_ver', type=int, default=0)
     parser.add_argument('--log')
     parser.add_argument('--debug', action='store_true')
 
@@ -39,5 +40,6 @@ if __name__ == '__main__':
 
     run(args.database,
         args.model,
-        args.batchsize
+        args.batchsize,
+        args.model_ver
         )

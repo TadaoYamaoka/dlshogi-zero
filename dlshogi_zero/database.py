@@ -17,6 +17,7 @@ class TrainingDataBase:
         file_exist = os.path.exists(filepath)
         self.con = sqlite3.connect(filepath, check_same_thread=False)
         self.cur = self.con.cursor()
+        self.model_ver = 0
         if file_exist and clear:
             self.cur.execute('DROP TABLE training_data')
         if not file_exist or clear:
