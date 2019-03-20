@@ -28,6 +28,7 @@ def process_csa(database, csa_file_list, filter_moves, filter_rating):
         game_hcprs = np.empty(MAX_MOVE_COUNT, dtype=HcpAndRepetition)
         # gameResult
         game_result = parser.win
+        skip = False
         for i, move in enumerate(parser.moves):
             # hcp
             board.to_hcp(game_hcprs[i]['hcp'])
@@ -52,14 +53,21 @@ def process_csa(database, csa_file_list, filter_moves, filter_rating):
             for prev in range(hist):
                 hcprs[prev] = game_hcprs[i - prev]
 
-            assert board.is_legal(move), "{}:{}:{}".format(filepath, i, move_to_usi(move))
+            if not board.is_legal(move):
+                print("skip {}:{}:{}".format(filepath, i, move_to_usi(move)))
+                skip = True
+                break
+
             board.push(move)
 
             chunk.append((hcprs.data, total_move_count, legal_moves.data, visits.data, game_result))
-            num_positions += 1
+
+        if skip:
+            continue
 
         # write data
         database.write_chunk(chunk)
+        num_positions += len(chunk)
     return num_positions
 
 if __name__ == '__main__':

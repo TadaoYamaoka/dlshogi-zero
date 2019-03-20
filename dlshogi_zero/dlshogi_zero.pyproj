@@ -14,7 +14,7 @@
     <RootNamespace>dlshogi_basic_zero</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>r:\floodgate h:\training.db h:\test.db -r</CommandLineArguments>
+    <CommandLineArguments>r:\test r:\training.db r:\test.db</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <InterpreterArguments>
     </InterpreterArguments>
