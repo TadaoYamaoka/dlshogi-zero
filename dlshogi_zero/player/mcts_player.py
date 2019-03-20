@@ -348,12 +348,7 @@ class MCTSPlayer(BasePlayer):
             u = 1.0
         else:
             u = np.sqrt(np.float32(current_node.move_count)) / (1 + child_move_count)
-        if depth == 0:
-            # Dirichlet noise
-            eta = np.random.dirichlet([ALPHA] * len(current_node.nnrate))
-            p = (1 - EPSILON) * current_node.nnrate + EPSILON * eta
-        else:
-            p = current_node.nnrate
+        p = current_node.nnrate
 
         ucb = q + c * u * p
 
