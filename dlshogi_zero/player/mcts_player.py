@@ -27,7 +27,7 @@ C_BASE = 19652
 C_INIT = 1.25
 # ノイズの定数
 ALPHA = 0.15
-EPSILON = 0.25
+EPSILON = 0.05
 # 投了する勝率の閾値
 RESIGN_THRESHOLD = 0.01
 # 温度パラメータ
@@ -100,6 +100,7 @@ class MCTSPlayer(BasePlayer):
         print('option name modelfile type string default ' + self.modelfile)
         print('option name playout type spin default ' + str(self.playout) + ' min 100 max 10000')
         print('option name temperature type spin default ' + str(int(TEMPERATURE * 100)) + ' min 10 max 1000')
+        print('option name noise type spin default ' + str(int(EPSILON * 100)) + ' min 0 max 100')
         print('usiok')
 
     def setoption(self, option):
@@ -110,6 +111,9 @@ class MCTSPlayer(BasePlayer):
         elif option[1] == 'temperature':
             global TEMPERATURE
             TEMPERATURE = int(option[3]) / 100
+        elif option[1] == 'noise':
+            global EPSILON
+            EPSILON = int(option[3]) / 100
 
     def isready(self):
         # モデルをロード
@@ -348,8 +352,12 @@ class MCTSPlayer(BasePlayer):
             u = 1.0
         else:
             u = np.sqrt(np.float32(current_node.move_count)) / (1 + child_move_count)
-        p = current_node.nnrate
-
+        if depth == 0:
+            # Dirichlet noise
+            eta = np.random.dirichlet([ALPHA] * len(current_node.nnrate))
+            p = (1 - EPSILON) * current_node.nnrate + EPSILON * eta
+        else:
+            p = current_node.nnrate
         ucb = q + c * u * p
 
         return np.argmax(ucb)
