@@ -92,7 +92,7 @@ class MCTSPlayer(BasePlayer):
         # キュー
         self.policy_value_batch_maxsize = policy_value_batch_maxsize
         self.features = np.empty((policy_value_batch_maxsize, MAX_FEATURES, 81), dtype=np.float32)
-        self.policy_value_node = [0] * policy_value_batch_maxsize
+        self.policy_value_node = [None for _ in range(policy_value_batch_maxsize)]
         self.current_policy_value_batch_index = 0
 
     def usi(self):
