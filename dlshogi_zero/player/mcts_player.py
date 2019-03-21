@@ -440,10 +440,6 @@ class MCTSPlayer(BasePlayer):
                 else:
                     # 千日手
                     result = 0.0
-            elif child_node.evaled:
-                # 合流
-                # valueを報酬として返す
-                result = -child_node.value_win
             else:
                 # ノードをキューに追加
                 self.queuing_node(self.board, self.moves, self.repetitions, child_node)
