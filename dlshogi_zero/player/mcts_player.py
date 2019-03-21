@@ -19,9 +19,6 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 set_session(sess)
 
-# ハッシュサイズ
-UCT_HASH_SIZE = 16384 # 2のn乗であること
-
 # UCBの定数
 C_BASE = 19652
 C_INIT = 1.25
@@ -81,10 +78,6 @@ class MCTSPlayer(BasePlayer):
         self.repetitions = [1]
         self.repetition_hash = defaultdict(int)
 
-        # ハッシュ
-        self.node_hash = NodeHash(UCT_HASH_SIZE)
-        self.uct_node = [UctNode() for _ in range(UCT_HASH_SIZE)]
-
         # プレイアウト回数管理
         self.po_info = PlayoutInfo()
         self.playout = CONST_PLAYOUT
@@ -128,8 +121,7 @@ class MCTSPlayer(BasePlayer):
         self.repetition_hash.clear()
 
         # 1手目を速くするためモデルをキャッシュする
-        self.current_root = self.expand_node()
-        current_node = self.uct_node[self.current_root]
+        current_node = self.expand_node()
         self.queuing_node(self.board, self.moves, self.repetitions, current_node)
         self.eval_node()
 
@@ -166,9 +158,6 @@ class MCTSPlayer(BasePlayer):
         # 探索情報をクリア
         self.po_info.count = 0
 
-        # 古いハッシュを削除
-        self.node_hash.delete_old_hash(self.board.move_number)
-        
         # 探索開始時刻の記録
         begin_time = time.time()
 
@@ -176,10 +165,10 @@ class MCTSPlayer(BasePlayer):
         self.po_info.halt = self.playout
 
         # ルートノードの展開
-        self.current_root = self.expand_node()
+        self.current_root_node = self.expand_node()
+        current_node = self.current_root_node
 
         # 候補手が1つの場合は、その手を返す
-        current_node = self.uct_node[self.current_root]
         child_num = current_node.child_num
         child_move = current_node.child_move
         if child_num == 1:
@@ -202,7 +191,7 @@ class MCTSPlayer(BasePlayer):
             # すべての探索についてシミュレーションを行う
             for _ in range(self.policy_value_batch_maxsize):
                 trajectories_batch.append([])
-                result = self.uct_search(self.current_root, 0, trajectories_batch[-1])
+                result = self.uct_search(current_node, 0, trajectories_batch[-1])
 
                 if result != DISCARDED:
                     # 探索回数を1回増やす
@@ -219,17 +208,16 @@ class MCTSPlayer(BasePlayer):
             # バックアップ
             for trajectories in trajectories_batch:
                 for i in reversed(range(len(trajectories))):
-                    (current, next_index) = trajectories[i]
-                    current_node = self.uct_node[current]
+                    (current_node, next_index) = trajectories[i]
                     if i == len(trajectories) - 1:
                         # 葉ノード
-                        child_index = current_node.child_index[next_index]
-                        result = -self.uct_node[child_index].value_win
-                    update_result(self.uct_node[current], next_index, result)
+                        child_node = current_node.child_nodes[next_index]
+                        result = -child_node.value_win
+                    update_result(current_node, next_index, result)
                     result = -result
 
             # 探索を打ち切るか確認
-            if self.interruption_check() or not self.node_hash.enough_size:
+            if self.interruption_check():
                 break
 
         # 探索にかかった時間を求める
@@ -265,11 +253,10 @@ class MCTSPlayer(BasePlayer):
         else:
             cp = int(-math.log(1.0 / best_wp - 1.0) * 600)
 
-        print('info nps {} time {} nodes {} hashfull {} score cp {} pv {}'.format(
+        print('info nps {} time {} nodes {} score cp {} pv {}'.format(
             int(current_node.move_count / finish_time),
             int(finish_time * 1000),
             current_node.move_count,
-            int(self.node_hash.usage_rate * 1000),
             cp, move_to_usi(bestmove).decode()))
 
         print('bestmove', move_to_usi(bestmove).decode())
@@ -364,39 +351,25 @@ class MCTSPlayer(BasePlayer):
 
     # ノードの展開
     def expand_node(self):
-        index = self.node_hash.find_same_hash_index(self.board.zobrist_hash(), self.board.move_number, self.repetitions[-1])
-
-        # 合流先が検知できれば, それを返す
-        if not index == UCT_HASH_SIZE:
-            return index
-    
-        # 空のインデックスを探す
-        index = self.node_hash.search_empty_index(self.board.zobrist_hash(), self.board.move_number, self.repetitions[-1])
-
-        # 現在のノードの初期化
-        current_node = self.uct_node[index]
-        current_node.move_count = 0
-        current_node.win = 0.0
-        current_node.child_num = 0
-        current_node.evaled = False
-        current_node.value_win = 0.0
+        # ノードを作成する
+        current_node = UctNode()
 
         # 候補手の展開
         current_node.child_move = [move for move in self.board.legal_moves]
         child_num = len(current_node.child_move)
-        current_node.child_index = [NOT_EXPANDED for _ in range(child_num)]
+        current_node.child_nodes = [None for _ in range(child_num)]
         current_node.child_move_count = np.zeros(child_num, dtype=dtypeVisit)
         current_node.child_win = np.zeros(child_num, dtype=np.float32)
 
         # 子ノードの個数を設定
         current_node.child_num = child_num
 
-        return index
+        return current_node
 
     # 探索を打ち切るか確認
     def interruption_check(self):
-        child_num = self.uct_node[self.current_root].child_num
-        child_move_count = self.uct_node[self.current_root].child_move_count
+        child_num = self.current_root_node.child_num
+        child_move_count = self.current_root_node.child_move_count
         rest = self.po_info.halt - self.po_info.count
 
         # 探索回数が最も多い手と次に多い手を求める
@@ -409,9 +382,7 @@ class MCTSPlayer(BasePlayer):
             return False
 
     # UCT探索
-    def uct_search(self, current, depth, trajectories):
-        current_node = self.uct_node[current]
-
+    def uct_search(self, current_node, depth, trajectories):
         # 詰みのチェック
         if current_node.child_num == 0:
             return 1.0 # 反転して値を返すため1を返す
@@ -435,7 +406,7 @@ class MCTSPlayer(BasePlayer):
 
         child_move = current_node.child_move
         child_move_count = current_node.child_move_count
-        child_index = current_node.child_index
+        child_nodes = current_node.child_nodes
 
         # UCB値が最大の手を求める
         next_index = self.select_max_ucb_child(current_node, depth)
@@ -443,18 +414,17 @@ class MCTSPlayer(BasePlayer):
         self.do_move(child_move[next_index])
 
         # 経路を記録
-        trajectories.append((current, next_index))
+        trajectories.append((current_node, next_index))
 
         # Virtual Lossを加算
         current_node.move_count += VIRTUAL_LOSS
         child_move_count[next_index] += VIRTUAL_LOSS
 
         # ノードの展開の確認
-        if child_index[next_index] == NOT_EXPANDED:
+        if child_nodes[next_index] == None:
             # ノードの展開
-            index = self.expand_node()
-            child_index[next_index] = index
-            child_node = self.uct_node[index]
+            child_node = self.expand_node()
+            child_nodes[next_index] = child_node
 
             if child_node.child_num == 0:
                 # 詰み
@@ -480,7 +450,7 @@ class MCTSPlayer(BasePlayer):
                 result = QUEUING
         else:
             # 手番を入れ替えて1手深く読む
-            result = self.uct_search(child_index[next_index], depth + 1, trajectories)
+            result = self.uct_search(child_nodes[next_index], depth + 1, trajectories)
 
         # 手を戻す
         self.undo_move()
