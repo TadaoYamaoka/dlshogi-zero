@@ -52,7 +52,7 @@ def categorical_accuracy(y_true, y_pred):
 def binary_accuracy(y_true, y_pred):
     return tf.keras.metrics.binary_accuracy(tf.keras.backend.round((y_true + 1) / 2), y_pred, threshold=0)
 
-def train(training_database_path, test_database_path, model_path, resume, batchsize, steps, test_steps, window_size, weight_decay, use_tpu):
+def train(training_database_path, test_database_path, model_path, resume, batchsize, lr, steps, test_steps, window_size, weight_decay, use_tpu):
 
     if resume is not None:
         model = load_model(resume)
@@ -64,7 +64,7 @@ def train(training_database_path, test_database_path, model_path, resume, batchs
         if isinstance(layer, tf.keras.layers.Conv2D) or isinstance(layer, tf.keras.layers.Dense):
             layer.add_loss(tf.keras.regularizers.l2(weight_decay)(layer.kernel))
 
-    model.compile(optimizer=tf.train.MomentumOptimizer(learning_rate=0.01, momentum=0.9),
+    model.compile(optimizer=tf.train.MomentumOptimizer(learning_rate=lr, momentum=0.9),
                   loss={'policy': categorical_crossentropy, 'value': 'mse'},
                   metrics={'policy': categorical_accuracy, 'value': binary_accuracy})
 
@@ -91,6 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('model', default='model.h5')
     parser.add_argument('--resume', '-r')
     parser.add_argument('--batchsize', type=int, default=256)
+    parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--steps', type=int, default=1000)
     parser.add_argument('--test_steps', type=int, default=100)
     parser.add_argument('--window_size', type=int, default=1000000)
@@ -104,6 +105,7 @@ if __name__ == '__main__':
           args.model,
           args.resume,
           args.batchsize,
+          args.lr,
           args.steps,
           args.test_steps,
           args.window_size,
