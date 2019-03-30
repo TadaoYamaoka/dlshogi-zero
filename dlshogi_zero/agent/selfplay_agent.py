@@ -1,6 +1,5 @@
 ﻿import tensorflow as tf
 from tensorflow.keras.backend import set_session
-from tensorflow.keras.models import load_model
 import numpy as np
 from cshogi import *
 from dlshogi_zero.features import *
@@ -35,19 +34,15 @@ QUEUING = 2.0
 database = None
 positions = 0
 written_positions = 0
-limit_games = 10000
+limit_games = 1000
 num_playouts = 800
 games = 0
 start_time = None
 stopflg = False
 
-def init_database(filepath, model_ver):
+def set_database(training_database):
     global database
-    database = TrainingDataBase(filepath)
-    database.set_model_ver(model_ver)
-
-def term_database():
-    database.close()
+    database = training_database
 
 def print_progress():
     moves_per_game = written_positions / games
@@ -87,8 +82,13 @@ def update_result(current_node, next_index, result):
     current_node.child_move_count[next_index] += 1
 
 class SelfPlayAgentGroup:
-    def __init__(self, model_path, policy_value_batch_maxsize):
-        self.model = load_model(model_path)
+    def __init__(self, model, training_database, policy_value_batch_maxsize, checkpoint, playouts):
+        # モデル
+        self.model = model
+
+        # データベース
+        global database
+        database = training_database
 
         # キュー
         self.policy_value_batch_maxsize = policy_value_batch_maxsize
@@ -99,7 +99,18 @@ class SelfPlayAgentGroup:
         # 自己対局エージェント
         self.agents = [SelfPlayAgent(self, i) for i in range(policy_value_batch_maxsize)]
 
+        global limit_games
+        limit_games = checkpoint
+        global num_playouts
+        num_playouts = playouts
+
     def selfplay(self):
+        global games
+        games = 0
+
+        global positions
+        positions = 0
+
         global start_time
         start_time = time.time()
 
@@ -136,10 +147,6 @@ class SelfPlayAgentGroup:
 
         # 結果表示
         print_result()
-
-        # stopファイルで終了した場合、ファイルを削除する
-        if stopflg:
-            os.remove('stop')
 
     # 局面の評価
     def eval_node(self):

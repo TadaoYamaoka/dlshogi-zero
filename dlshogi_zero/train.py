@@ -38,10 +38,9 @@ def mini_batch(database, window_size, batch_size):
 
     return (features.reshape((batch_size, MAX_FEATURES, 9, 9)), { 'policy': action_probabilities, 'value': game_outcomes })
 
-def datagen(database_path, window_size, batchsize):
-    training_database = TrainingDataBase(database_path)
+def datagen(database, window_size, batchsize):
     while True:
-        yield mini_batch(training_database, window_size, batchsize)
+        yield mini_batch(database, window_size, batchsize)
 
 def categorical_crossentropy(y_true, y_pred):
     return tf.keras.backend.categorical_crossentropy(y_true, y_pred, from_logits=True)
@@ -52,12 +51,7 @@ def categorical_accuracy(y_true, y_pred):
 def binary_accuracy(y_true, y_pred):
     return tf.keras.metrics.binary_accuracy(tf.keras.backend.round((y_true + 1) / 2), y_pred, threshold=0)
 
-def train(training_database_path, test_database_path, model_path, resume, batchsize, lr, steps, test_steps, window_size, weight_decay, use_tpu):
-
-    if resume is not None:
-        model = load_model(resume)
-    else:
-        model = ResNet()
+def compile(model, lr, weight_decay):
 
     # add weight decay
     for layer in model.layers:
@@ -68,19 +62,9 @@ def train(training_database_path, test_database_path, model_path, resume, batchs
                   loss={'policy': categorical_crossentropy, 'value': 'mse'},
                   metrics={'policy': categorical_accuracy, 'value': binary_accuracy})
 
-    # TPU
-    if use_tpu:
-        model = tf.contrib.tpu.keras_to_tpu_model(
-            model,
-            strategy=tf.contrib.tpu.TPUDistributionStrategy(
-                tf.contrib.cluster_resolver.TPUClusterResolver(tpu='grpc://' + os.environ['COLAB_TPU_ADDR'])
-            )
-        )
-
-    model.fit_generator(datagen(training_database_path, window_size, batchsize), steps,
-                        validation_data=datagen(test_database_path, window_size, batchsize), validation_steps=test_steps)
-
-    model.save(model_path)
+def train(training_database, test_database, model, batchsize, steps, test_steps, window_size):
+    model.fit_generator(datagen(training_database, window_size, batchsize), steps,
+                        validation_data=datagen(test_database, window_size, batchsize), validation_steps=test_steps)
 
 if __name__ == '__main__':
     import argparse
@@ -93,22 +77,29 @@ if __name__ == '__main__':
     parser.add_argument('--batchsize', type=int, default=256)
     parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--steps', type=int, default=1000)
-    parser.add_argument('--test_steps', type=int, default=100)
-    parser.add_argument('--window_size', type=int, default=1000000)
+    parser.add_argument('--test_steps', type=int, default=1000)
+    parser.add_argument('--window_size', type=int, default=5000)
     parser.add_argument('--weight_decay', type=int, default=1e-4)
-    parser.add_argument('--use_tpu', action='store_true')
 
     args = parser.parse_args()
 
-    train(args.training_database,
-          args.test_database,
-          args.model,
-          args.resume,
+    if args.resume is not None:
+        model = load_model(args.resume)
+    else:
+        model = ResNet()
+
+    compile(model, args.lr, args.weight_decay)
+
+    training_database = TrainingDataBase(args.training_database)
+    test_database = TrainingDataBase(args.test_database)
+
+    train(training_database,
+          test_database,
+          model,
           args.batchsize,
-          args.lr,
           args.steps,
           args.test_steps,
-          args.window_size,
-          args.weight_decay,
-          args.use_tpu
+          args.window_size
           )
+
+    model.save(model_path)
