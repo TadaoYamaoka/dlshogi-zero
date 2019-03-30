@@ -145,8 +145,14 @@ class SelfPlayAgentGroup:
             for agent in self.agents:
                 agent.next_step()
 
+        # stopファイルで終了した場合、ファイルを削除する
+        if stopflg:
+            os.remove('stop')
+
         # 結果表示
         print_result()
+
+        return not stopflg
 
     # 局面の評価
     def eval_node(self):

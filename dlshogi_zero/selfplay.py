@@ -1,4 +1,4 @@
-﻿from dlshogi_zero.agent.selfplay_agent import SelfPlayAgentGroup, stopflg
+﻿from dlshogi_zero.agent.selfplay_agent import SelfPlayAgentGroup
 from dlshogi_zero.train import compile, train
 from dlshogi_zero import database
 from tensorflow.keras.models import load_model
@@ -29,7 +29,10 @@ def run(training_database_path, test_database_path, model_path, agents, checkpoi
     cycles = 0
     while True:
         # 自己対局開始
-        agent_group.selfplay()
+        ret = agent_group.selfplay()
+
+        if ret == False:
+            break
 
         # 訓練
         train(training_database, test_database, model, batchsize, steps, test_steps, window_size)
@@ -37,7 +40,7 @@ def run(training_database_path, test_database_path, model_path, agents, checkpoi
         cycles += 1
 
         # 終了判定
-        if stopflg or (limit_cycles is not None and cycles >= limit_cycles):
+        if limit_cycles is not None and cycles >= limit_cycles:
             break
 
         # モデル保存
@@ -46,10 +49,6 @@ def run(training_database_path, test_database_path, model_path, agents, checkpoi
 
         # モデルバージョン設定
         training_database.set_model_ver(model_ver)
-
-    # stopファイルで終了した場合、ファイルを削除する
-    if stopflg:
-        os.remove('stop')
 
     training_database.close()
     test_database.close()
