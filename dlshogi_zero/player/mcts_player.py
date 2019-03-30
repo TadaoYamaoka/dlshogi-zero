@@ -66,7 +66,7 @@ class PlayoutInfo:
         self.count = 0 # 現在の探索回数
         
 class MCTSPlayer(BasePlayer):
-    def __init__(self, policy_value_batch_maxsize):
+    def __init__(self):
         # モデルファイルのパス
         self.modelfile = r'H:\model.h5'
         self.model = None # モデル
@@ -83,15 +83,15 @@ class MCTSPlayer(BasePlayer):
         self.playout = CONST_PLAYOUT
 
         # キュー
-        self.policy_value_batch_maxsize = policy_value_batch_maxsize
-        self.features = np.empty((policy_value_batch_maxsize, MAX_FEATURES, 81), dtype=np.float32)
-        self.policy_value_node = [None for _ in range(policy_value_batch_maxsize)]
-        self.current_policy_value_batch_index = 0
+        self.policy_value_batch_maxsize = 32
+        self.features = None
+        self.policy_value_node = None
 
     def usi(self):
         print('id name dlshogi-zero')
         print('option name modelfile type string default ' + self.modelfile)
         print('option name playout type spin default ' + str(self.playout) + ' min 100 max 10000')
+        print('option name batchsize type spin default ' + str(self.policy_value_batch_maxsize) + ' min 1 max 256')
         print('option name temperature type spin default ' + str(int(TEMPERATURE * 100)) + ' min 10 max 1000')
         print('option name noise type spin default ' + str(int(EPSILON * 100)) + ' min 0 max 100')
         print('usiok')
@@ -101,6 +101,8 @@ class MCTSPlayer(BasePlayer):
             self.modelfile = option[3]
         elif option[1] == 'playout':
             self.playout = int(option[3])
+        elif option[1] == 'batchsize':
+            self.policy_value_batch_maxsize = int(option[3])
         elif option[1] == 'temperature':
             global TEMPERATURE
             TEMPERATURE = int(option[3]) / 100
@@ -112,6 +114,12 @@ class MCTSPlayer(BasePlayer):
         # モデルをロード
         if self.model is None:
             self.model = load_model(self.modelfile)
+
+        # キューを初期化
+        if self.features is None or len(self.features) != self.policy_value_batch_maxsize:
+            self.features = np.empty((self.policy_value_batch_maxsize, MAX_FEATURES, 81), dtype=np.float32)
+            self.policy_value_node = [None for _ in range(self.policy_value_batch_maxsize)]
+        self.current_policy_value_batch_index = 0
 
         # 盤面情報をクリア
         self.board.reset()
