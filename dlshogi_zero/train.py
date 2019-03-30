@@ -13,13 +13,13 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 set_session(sess)
 
-def mini_batch(database, window_size, batch_size):
+def mini_batch(database, batch_size):
     board = Board()
     features = np.zeros((batch_size, MAX_FEATURES, 81), dtype=np.float32)
     action_probabilities = np.zeros((batch_size, MAX_ACTION_LABELS), dtype=np.float32)
     game_outcomes = np.empty(batch_size, dtype=np.float32)
 
-    for i, (hcprs, total_move_count, legal_moves, visits, game_result) in enumerate(database.get_training_batch(window_size=window_size, batch_size=batch_size)):
+    for i, (hcprs, total_move_count, legal_moves, visits, game_result) in enumerate(database.get_training_batch(batch_size)):
         # input features
         for j, hcpr in enumerate(hcprs):
             board.set_hcp(hcpr['hcp'])
@@ -39,8 +39,9 @@ def mini_batch(database, window_size, batch_size):
     return (features.reshape((batch_size, MAX_FEATURES, 9, 9)), { 'policy': action_probabilities, 'value': game_outcomes })
 
 def datagen(database, window_size, batchsize):
+    database.prepare_training(window_size)
     while True:
-        yield mini_batch(database, window_size, batchsize)
+        yield mini_batch(database, batchsize)
 
 def categorical_crossentropy(y_true, y_pred):
     return tf.keras.backend.categorical_crossentropy(y_true, y_pred, from_logits=True)
@@ -78,7 +79,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--steps', type=int, default=1000)
     parser.add_argument('--test_steps', type=int, default=1000)
-    parser.add_argument('--window_size', type=int, default=5000)
+    parser.add_argument('--window_size', type=int, default=1000000)
     parser.add_argument('--weight_decay', type=int, default=1e-4)
 
     args = parser.parse_args()
@@ -102,4 +103,4 @@ if __name__ == '__main__':
           args.window_size
           )
 
-    model.save(model_path)
+    model.save(args.model)
