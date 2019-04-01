@@ -1,18 +1,18 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.539
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4831655C-78A1-4C48-B213-7AE6FB87A90E}"
+	ProjectSection(SolutionItems) = preProject
+		setup.py = setup.py
+	EndProjectSection
+EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "dlshogi_zero", "dlshogi_zero\dlshogi_zero.pyproj", "{9F78D98B-17E6-496B-ABA2-56D423235939}"
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "utils", "utils\utils.pyproj", "{C8625ED7-06EB-41BB-B07C-26C5CE18FAD1}"
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "test", "test\test.pyproj", "{ACBC2FAA-A5B4-4725-B75E-1B0ADA4C5196}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4831655C-78A1-4C48-B213-7AE6FB87A90E}"
-	ProjectSection(SolutionItems) = preProject
-		setup.py = setup.py
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,5 +29,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {961CFAF3-AE3A-4AFE-B16B-F41864E5E10D}
 	EndGlobalSection
 EndGlobal
