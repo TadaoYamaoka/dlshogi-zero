@@ -3,9 +3,9 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Layer, Input, Dense, Conv2D, BatchNormalization, Activation, Flatten, Add
 from dlshogi_zero.features import MAX_FEATURES, MAX_ACTION_PLANES
 
-RES_BLOCKS = 10
+RES_BLOCKS = 5
 FILTERS = 192
-FCL_UNITS = 256
+FCL_UNITS = 192
 
 def conv_layer(inputs,
                filters,
