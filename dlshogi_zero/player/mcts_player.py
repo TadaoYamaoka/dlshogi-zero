@@ -24,7 +24,7 @@ C_BASE = 19652
 C_INIT = 1.25
 # ノイズの定数
 ALPHA = 0.15
-EPSILON = 0.05
+EPSILON = 0.0
 # 投了する勝率の閾値
 RESIGN_THRESHOLD = 0.01
 # 温度パラメータ
