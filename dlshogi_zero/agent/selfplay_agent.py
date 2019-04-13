@@ -211,6 +211,7 @@ class SelfPlayAgent:
         self.grp = grp
         self.id = id
 
+        self.current_root_node = None
         self.playouts = 0
         self.board = Board()
         self.moves = []
@@ -269,7 +270,8 @@ class SelfPlayAgent:
             # 手番開始
             if self.playouts == 0:
                 # ルートノード展開
-                self.current_root_node = self.expand_node()
+                if self.current_root_node is None:
+                    self.current_root_node = self.expand_node()
 
                 current_node = self.current_root_node
 
@@ -300,9 +302,9 @@ class SelfPlayAgent:
                     continue
 
                 # ルート局面をキューに追加
-                self.grp.queuing_node(self.board, self.moves, self.repetitions, current_node)
-
-                return
+                if not self.current_root_node.evaled:
+                    self.grp.queuing_node(self.board, self.moves, self.repetitions, current_node)
+                    return
 
             # プレイアウト
             result = self.uct_search(self.current_root_node, 0, trajectories)
@@ -375,6 +377,11 @@ class SelfPlayAgent:
                 self.next_game(game_result)
                 return
 
+            # ノードを再利用する
+            self.current_root_node = current_root_node.child_nodes[select_index]
+            self.current_root_node.child_move_count.fill(0)
+            self.current_root_node.child_win.fill(0)
+
             # 次の手番
             self.playouts = 0
 
@@ -402,6 +409,7 @@ class SelfPlayAgent:
             stopflg = True
 
         # 新しいゲーム
+        self.current_root_node = None
         self.playouts = 0
         self.board.reset()
         self.chunk.clear()
