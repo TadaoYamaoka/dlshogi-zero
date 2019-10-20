@@ -144,10 +144,10 @@ class MCTSPlayer(BasePlayer):
         if moves[0] == 'startpos':
             self.board.reset()
             for move_usi in moves[2:]:
-                self.do_move(self.board.move_from_usi(move_usi.encode()))
+                self.do_move(self.board.move_from_usi(move_usi))
 
         elif moves[0] == 'sfen':
-            self.board.set_sfen(' '.join(moves[1:]).encode())
+            self.board.set_sfen(' '.join(moves[1:]))
 
         # for debug
         if __debug__:
@@ -241,7 +241,7 @@ class MCTSPlayer(BasePlayer):
         if __debug__:
             for i in range(child_num):
                 print('{:3}:{:5} move_count:{:4} nn_rate:{:.5f} win_rate:{:.5f}'.format(
-                    i, move_to_usi(child_move[i]).decode(), child_move_count[i],
+                    i, move_to_usi(child_move[i]), child_move_count[i],
                     current_node.nnrate[i],
                     child_win[i] / child_move_count[i] if child_move_count[i] > 0 else 0))
 
@@ -265,9 +265,9 @@ class MCTSPlayer(BasePlayer):
             int(current_node.move_count / finish_time),
             int(finish_time * 1000),
             current_node.move_count,
-            cp, move_to_usi(bestmove).decode()))
+            cp, move_to_usi(bestmove)))
 
-        print('bestmove', move_to_usi(bestmove).decode())
+        print('bestmove', move_to_usi(bestmove))
 
     # 局面の評価
     def eval_node(self):

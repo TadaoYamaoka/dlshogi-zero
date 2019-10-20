@@ -346,7 +346,7 @@ class SelfPlayAgent:
             best_move = current_root_node.child_move[select_index]
 
             if __debug__ : logging.debug('id:{} ply:{} sfen {} move:{} value:{:.2f}'.format(
-                self.id, self.board.move_number, self.board.sfen().decode('utf-8'), move_to_usi(best_move).decode('utf-8'), best_wp))
+                self.id, self.board.move_number, self.board.sfen(), move_to_usi(best_move), best_wp))
     
             # 勝率が閾値を超えた場合、ゲーム終了
             if WINRATE_THRESHOLD < abs(best_wp):

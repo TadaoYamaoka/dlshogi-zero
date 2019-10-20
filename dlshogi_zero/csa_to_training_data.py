@@ -16,8 +16,8 @@ def process_csa(database, csa_file_list, filter_moves, filter_rating):
     parser = Parser()
     num_positions = 0
     for filepath in csa_file_list:
-        parser.parse_csa_file(filepath.encode('utf-8'))
-        if parser.endgame not in (b'%TORYO', b'%SENNICHITE', b'%KACHI', b'%HIKIWAKE') or len(parser.moves) < filter_moves:
+        parser.parse_csa_file(filepath)
+        if parser.endgame not in ('%TORYO', '%SENNICHITE', '%KACHI', '%HIKIWAKE') or len(parser.moves) < filter_moves:
             continue
         if filter_rating > 0 and (parser.ratings[0] < filter_rating or parser.ratings[1] < filter_rating):
             continue

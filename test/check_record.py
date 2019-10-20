@@ -24,8 +24,8 @@ for i, data in enumerate(records):
 
     index = np.argmax(visits)
     move = legal_moves[index]
-    print(i, move_to_usi(move).decode('utf-8'))
+    print(i, move_to_usi(move))
     for hcpr in hcprs:
         board.set_hcp(hcpr['hcp'])
-        print(board.sfen().decode('utf-8'))
+        print(board.sfen())
 

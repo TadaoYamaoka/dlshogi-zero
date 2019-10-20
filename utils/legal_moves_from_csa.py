@@ -11,7 +11,7 @@ def read_kifu(kifu_list):
     positions = []
     parser = Parser()
     for filepath in kifu_list:
-        parser.parse_csa_file(filepath.encode('utf-8'))
+        parser.parse_csa_file(filepath)
         board = Board()
         for move in parser.moves:
             legal_moves.append(len(board.leagal_move_list()))
